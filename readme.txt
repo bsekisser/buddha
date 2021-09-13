@@ -19,8 +19,13 @@ seems to be several distinct blocks of data...
 
 looking at what seems to be the header...
 
-0xxxxxxxxx: ef ff zz zz 1f zz zz zz f0 zz zz zz ef ff df zz zz zz zz de 86 d0 82 e7 10 00 20 41 83 07 0f e3
+0xxxxxxxxx: ef ff zz zz 1f zz zz zz f0 zz zz zz ef ff df zz 50 zz zz de 86 d0 82 e7 10 00 20 41 83 07 0f e3
 
 many entries seem to follow a distinct format...
 
 where valid hex bytes remain consistent...  zz are bytes that consistently vary.
+
+/* **** */
+
+suggested offset at 4... with xor 0x1F3E7CF8
+suggested length at 8... with xor 0xF0C1A367
