@@ -26,7 +26,7 @@ struct stat sb;
 int fd_copy(const char* path, uint8_t* raw, uint32_t start, uint32_t end)
 {
 	char buf[256];
-	snprintf(buf, 0xff, "dumps/%s-0x%06x-0x%06x", path, start, end);
+	snprintf(buf, 0xff, "%s-0x%06x-0x%06x", path, start, end);
 
 	uint8_t* src = &raw[start];
 	uint32_t len = end - start;
@@ -54,7 +54,7 @@ void fd_header_crc(uint8_t* src, uint32_t start, uint32_t end)
 	TRACE();
 
 	for(uint32_t offset = start; offset < end; offset += 32) {
-		uint8_t* pat = &src[offset];
+//		uint8_t* pat = &src[offset];
 
 		uint16_t crc16_out = crc_16(pat, 32);
 		uint32_t crc32_out = 0;
@@ -106,7 +106,7 @@ void fd_dump(uint8_t* src, uint32_t start, uint32_t end)
 			uint32_t eend = offset + length;
 			
 			if((offset > 0) && (offset < sb.st_size) && (offset + length < sb.st_size))
-				fd_copy("buddha", src, offset, eend);
+				fd_copy("dumps/part/buddha", src, offset, eend);
 		}
 
 //		printf(" -- 0x%08x, \n",
@@ -196,11 +196,12 @@ int main(void)
 	/* **** */
 
 	if(DUMP_BLOCKS) {
-		fd_copy("buddha", bin, 0x0000, 0x05ff);
-		fd_copy("buddha", bin, 0x0600, 0x7dff);
-		fd_copy("buddha", bin, 0x7e00, 0x8dff);
-		fd_copy("buddha", bin, 0x8e00, 0x96ff);
-		fd_copy("buddha", bin, 0x9700, sb.st_size);
+		const char* path = "dumps/block/buddha";
+		fd_copy(path, bin, 0x0000, 0x05ff);
+		fd_copy(path, bin, 0x0600, 0x7dff);
+		fd_copy(path, bin, 0x7e00, 0x8dff);
+		fd_copy(path, bin, 0x8e00, 0x96ff);
+		fd_copy(path, bin, 0x9700, sb.st_size);
 	}
 
 //	fd_dump(bin, 0x0000, 0x05ff);
