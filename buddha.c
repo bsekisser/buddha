@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -94,20 +95,33 @@ void fd_dump(uint8_t* src, uint32_t start, uint32_t end)
 	{
 		printf("0x%08x: ", pat - src);
 		
-		for(int i = 0; i < 32; i++)
-			printf("%02x ", pat[i]);
+//		for(int i = 0; i < 32; i++)
+//			printf("%02x ", pat[i]);
 		
-//		printf("\n");
-
 		uint32_t offset = xor32_at(pat + 4, 0x1F3E7CF8);
 		uint32_t length = xor32_at(pat + 8, 0xF0C1A367);
 
-		if(DUMP_BLOCK_PARTS) {
-			uint32_t eend = offset + length;
+		uint32_t eend = offset + length;
 			
-			if((offset > 0) && (offset < sb.st_size) && (offset + length < sb.st_size))
+		if((offset > 0) && (offset < sb.st_size) && (offset + length < sb.st_size)) {
+			if(DUMP_BLOCK_PARTS)
 				fd_copy("dumps/part/buddha", src, offset, eend);
+
+if(0) {
+			const char blockstart[] = { 0xCB, 0x80, 0xBF, 0xF0,
+				0x06, 0x67, 0x72, 0xAA,
+				0x66, 0x17, 0xF7, 0x00 };
+
+			if(0 == strncmp(&blockstart, &src[offset], 11))
+				printf(" -- blockstart match\n");
+}
+
+		for(int i = 0; i < 32; i++)
+			printf("%02x ", (&src[offset])[i]);
+			
 		}
+
+		printf("\n");
 
 //		printf(" -- 0x%08x, \n",
 //			xor32_at(pat, 0xefff1d5c));
@@ -115,7 +129,7 @@ void fd_dump(uint8_t* src, uint32_t start, uint32_t end)
 //			xor32_at(pat + 4, 0x00000600));
 
 
-		printf(" -- offset = 0x%08x, length = 0x%08x\n", offset, length);
+//		printf(" -- offset = 0x%08x, length = 0x%08x\n", offset, length);
 		
 		pat += 32;
 	}

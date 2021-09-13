@@ -40,3 +40,14 @@ suggested length at 8... with xor 0xF0C1A367
 0x000000a0: ef ff 14 4a 1f 38 5a bc f0 c1 50 67 ef ff df 9b 50 4c ca de 86 d0 82 e7 10 00 20 41 83 07 0f 3e 
 0x000000c0: ef ff 3e 98 1f 39 65 bc f0 c1 6f 1d ef ff df 9a 50 4c cb de 86 d0 82 e7 10 00 20 41 83 07 0f 3e 
 0x000000e0: ef ff 06 8a 1f 39 99 46 f0 c0 a7 b0 ef ff df 99 50 4c cc de 86 d0 82 e7 10 00 20 41 83 07 0f 3e 
+
+/* **** */
+
+00000000: CB 80 BF F0 06 67 72 AA 66 17 F7 8A 3F 44 0D C1 6E 55 4C CA FE 6F 24 95 56 52 4F 00 AD 6A AF F4 C0 BD DE
+00000000: CB 80 BF F0 06 67 72 AA 66 17 F7 8B AF 63 54 5C C5 15 11 10 9F F2 0D 3A 06 97 F4 90 1A C0 18 04 93 88 5E
+00000000: CB 81 BF F0 06 67 72 AA 66 17 F7 9A DF 44 51 81 6D D4 CC C2 FF ED 26 01 49 02 4C 35 8D 66 56 0A 3C 60 82
+
+block parts look to start with patterns: x varies
+	CB 8x BF F0 06 67 72 AA 66 17 F7
+	CA 4x FF 80 33 3B 95 53 34 BF Bx
+	
