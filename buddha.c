@@ -8,6 +8,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define WRITE_ENABLE 0
+#define DUMP_BLOCKS 0
+#define DUMP_BLOCK_PARTS 0
+
 //#include "crc16.c"
 #define crc_16(_data, _len) 0
 
@@ -17,26 +21,24 @@
 #define TRACE(_f, args...) \
 		printf("%s @ %u: " _f "\n", __FUNCTION__, __LINE__, ##args)
 
+struct stat sb;
+
 int fd_copy(const char* path, uint8_t* raw, uint32_t start, uint32_t end)
 {
 	char buf[256];
-	snprintf(buf, 0xff, "%s-0x%06x-0x%06x", path, start, end);
-
-	int do_write = 0;
-
-	int wfd = 0;
-	if(do_write) {
-		wfd = creat(buf, /*S_IRWXU | */S_IRUSR | S_IRGRP | S_IROTH);
-		if(-1 == wfd)
-			{ perror("fd_copy -- open"); return(-1); }
-	}
+	snprintf(buf, 0xff, "dumps/%s-0x%06x-0x%06x", path, start, end);
 
 	uint8_t* src = &raw[start];
 	uint32_t len = end - start;
 	
 	printf("%s, end = 0x%08x, len = 0x%08x\n", buf, end - start, len);
 
-	if(do_write) {
+	int wfd = 0;
+	if(WRITE_ENABLE) {
+		wfd = creat(buf, /*S_IRWXU | */S_IRUSR | S_IRGRP | S_IROTH);
+		if(-1 == wfd)
+			{ perror("fd_copy -- open"); return(-1); }
+
 		int err = write(wfd, src, len);
 		if(-1 == err)
 			{ perror("fd_copy -- write"); return(-1); }
@@ -97,14 +99,23 @@ void fd_dump(uint8_t* src, uint32_t start, uint32_t end)
 		
 //		printf("\n");
 
+		uint32_t offset = xor32_at(pat + 4, 0x1F3E7CF8);
+		uint32_t length = xor32_at(pat + 8, 0xF0C1A367);
+
+		if(DUMP_BLOCK_PARTS) {
+			uint32_t eend = offset + length;
+			
+			if((offset > 0) && (offset < sb.st_size) && (offset + length < sb.st_size))
+				fd_copy("buddha", src, offset, eend);
+		}
+
 //		printf(" -- 0x%08x, \n",
-//			xor32_at(pat, ~0x0000e2a3));
-//			xor32_at(pat, ~0x000005ff));
+//			xor32_at(pat, 0xefff1d5c));
+//			xor32_at(pat, 0x0000fe00 - 1));
+//			xor32_at(pat + 4, 0x00000600));
 
 
-		printf(" -- offset = 0x%08x, length = 0x%08x\n",
-			xor32_at(pat + 4, 0x1F3E7CF8), xor32_at(pat + 8, 0xF0C1A367));
-//			xor32_at(pat + 12, 0x1F3E7CF8), xor32_at(pat + 18, 0xF0C1A367));
+		printf(" -- offset = 0x%08x, length = 0x%08x\n", offset, length);
 		
 		pat += 32;
 	}
@@ -167,14 +178,12 @@ void fd_dump_xor_shift(uint8_t* src, uint32_t start, uint32_t end, uint32_t shif
 	printf("\n");
 }
 
-
 int main(void)
 {
-	int fd = open("buddha.bin", O_RDONLY);
+	int fd = open("archive/buddha.bin", O_RDONLY);
 	if(-1 == fd)
 		{ perror("open"); return(-1); }
 	
-	struct stat sb;
 	if(-1 == fstat(fd, &sb))
 		{ perror("stat"); return(-1); }
 	
@@ -186,7 +195,7 @@ int main(void)
 	
 	/* **** */
 
-	if(1) {
+	if(DUMP_BLOCKS) {
 		fd_copy("buddha", bin, 0x0000, 0x05ff);
 		fd_copy("buddha", bin, 0x0600, 0x7dff);
 		fd_copy("buddha", bin, 0x7e00, 0x8dff);
@@ -195,7 +204,7 @@ int main(void)
 	}
 
 //	fd_dump(bin, 0x0000, 0x05ff);
-	fd_dump(bin, 0x0000, 0x01ff);
+	fd_dump(bin, 0x0000, 0x05ff);
 	
 //	for(int i = 1; i < 15; i++)
 //		fd_dump_xor_shift(bin, 0x0000, 0x00ff, i);
