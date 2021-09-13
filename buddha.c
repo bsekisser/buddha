@@ -13,7 +13,7 @@ int fd_copy(const char* path, uint8_t* raw, uint32_t start, uint32_t end)
 	char buf[256];
 	snprintf(buf, 0xff, "%s-0x%06x-0x%06x", path, start, end);
 
-	int do_write = 1;
+	int do_write = 0;
 
 	int wfd = 0;
 	if(do_write) {
