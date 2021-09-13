@@ -17,7 +17,7 @@ int fd_copy(const char* path, uint8_t* raw, uint32_t start, uint32_t end)
 
 	int wfd = 0;
 	if(do_write) {
-		wfd = creat(buf, O_WRONLY);
+		wfd = creat(buf, /*S_IRWXU | */S_IRUSR | S_IRGRP | S_IROTH);
 		if(-1 == wfd)
 			{ perror("fd_copy -- open"); return(-1); }
 	}
@@ -29,7 +29,7 @@ int fd_copy(const char* path, uint8_t* raw, uint32_t start, uint32_t end)
 
 	if(do_write) {
 		int err = write(wfd, src, len);
-		if(-1 == wfd)
+		if(-1 == err)
 			{ perror("fd_copy -- write"); return(-1); }
 	
 		close(wfd);
@@ -37,6 +37,23 @@ int fd_copy(const char* path, uint8_t* raw, uint32_t start, uint32_t end)
 
 	return(0);
 }
+
+void fd_header_list(uint8_t* src, uint32_t start, uint32_t end)
+{
+	uint8_t* limit = &src[end];
+	uint8_t* pat = &src[start];
+	
+	while(limit > pat)
+	{
+		printf("0x%08x: ", pat - src);
+		
+		for(int i = 32; i > 0; i--)
+			printf("%02x ", *pat++);
+		
+		printf("\n");
+	}
+}
+
 
 int main(void)
 {
@@ -56,12 +73,16 @@ int main(void)
 	
 	/* **** */
 
-	fd_copy("buddha", bin, 0x0000, 0x05ff);
-	fd_copy("buddha", bin, 0x0600, 0x7dff);
-	fd_copy("buddha", bin, 0x7e00, 0x8dff);
-	fd_copy("buddha", bin, 0x8e00, 0x96ff);
-	fd_copy("buddha", bin, 0x9700, sb.st_size);
-	
+	if(1) {
+		fd_copy("buddha", bin, 0x0000, 0x05ff);
+		fd_copy("buddha", bin, 0x0600, 0x7dff);
+		fd_copy("buddha", bin, 0x7e00, 0x8dff);
+		fd_copy("buddha", bin, 0x8e00, 0x96ff);
+		fd_copy("buddha", bin, 0x9700, sb.st_size);
+	}
+
+	fd_header_list(bin, 0x0004, 0x05ff);
+
 	/* **** */
 
 	munmap(bin, sb.st_size);
