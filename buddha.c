@@ -63,6 +63,26 @@ void fd_header_crc(uint8_t* src, uint32_t start, uint32_t end)
 	}
 }
 
+static uint32_t xor32_at(uint8_t* src, uint32_t key)
+{
+	uint32_t data = 0;
+
+//	printf("\n");
+
+	for(int i = 4; i > 0; i--)
+	{
+		uint8_t c = *src++;
+		data = (data << 8) | c;
+//		printf("(0x%08x, 0x%02x) ", data, c);
+	}
+
+	data ^= key;
+
+//	printf("\n");
+
+	return(data);
+}
+
 void fd_dump(uint8_t* src, uint32_t start, uint32_t end)
 {
 	uint8_t* limit = &src[end];
@@ -72,17 +92,21 @@ void fd_dump(uint8_t* src, uint32_t start, uint32_t end)
 	{
 		printf("0x%08x: ", pat - src);
 		
-		for(int i = 32; i > 0; i--)
-			printf("%02x ", *pat++);
+		for(int i = 0; i < 32; i++)
+			printf("%02x ", pat[i]);
 		
-		printf("\n");
-	}
+//		printf("\n");
 
-	if(1) for(uint32_t offset = start; offset < end; offset += 32) {
-		uint8_t* pat = &src[offset];
+//		printf(" -- 0x%08x, \n",
+//			xor32_at(pat, ~0x0000e2a3));
+//			xor32_at(pat, ~0x000005ff));
 
-		printf("offset = 0x%08x, length = 0x%08x, -offset = 0x%08x, -length = 0x%08x\n",
-			(*(uint32_t*)&pat[4]) ^ 0x1F3E7CF8, (*(uint32_t*)&pat[8]) ^ 0xF0C1A367);
+
+		printf(" -- offset = 0x%08x, length = 0x%08x\n",
+			xor32_at(pat + 4, 0x1F3E7CF8), xor32_at(pat + 8, 0xF0C1A367));
+//			xor32_at(pat + 12, 0x1F3E7CF8), xor32_at(pat + 18, 0xF0C1A367));
+		
+		pat += 32;
 	}
 }
 
@@ -102,6 +126,45 @@ void fd_dump_xor(uint8_t* src, uint32_t start, uint32_t end, uint32_t xor)
 		
 		printf("\n");
 	}
+}
+
+void fd_dump_xor_c16(uint8_t* src, uint32_t start, uint32_t end, uint8_t* xor)
+{
+	uint8_t* limit = &src[end];
+	uint8_t* pat = &src[start];
+
+	while(limit > pat)
+	{
+		printf("0x%08x: ", pat - src);
+		
+		for(int i = 32; i > 0; i--)
+			printf("%02x ", *pat++ ^ xor[i & 0xf]);
+		
+		printf("\n");
+	}
+}
+
+void fd_dump_xor_shift(uint8_t* src, uint32_t start, uint32_t end, uint32_t shift)
+{
+	uint8_t* limit = &src[end - shift];
+	uint8_t* pat = &src[start];
+
+	uint8_t* pxor = &src[shift];
+	
+	while(limit > pat)
+	{
+		printf("0x%08x: ", pat - src);
+		
+		for(int i = 32; i > 0; i--)
+			printf("%02x ", pat[i & 0x1f] ^ pxor[i & 0x1f]);
+		
+		pat += 32;
+		pxor += 32;
+		
+		printf("\n");
+	}
+	
+	printf("\n");
 }
 
 
@@ -132,11 +195,16 @@ int main(void)
 	}
 
 //	fd_dump(bin, 0x0000, 0x05ff);
-	fd_dump(bin, 0x0000, 0x00ff);
+	fd_dump(bin, 0x0000, 0x01ff);
+	
+//	for(int i = 1; i < 15; i++)
+//		fd_dump_xor_shift(bin, 0x0000, 0x00ff, i);
+
 //	fd_dump_xor(bin, 0x0003, 0x05ff, 0x1F3E7CF8);
 //	fd_dump_xor(bin, 0x0003, 0x05ff, 0x1F3E7CF8);
 //	fd_dump_xor(bin, 0x0603, 0x06ff, 0xF0C1A367);
-
+//	fd_dump_xor_c16(bin, 0x0000, 0x05ff, "\xef\xff\xff\xde\x1f\xd0\x82\xe7\xf0\x00 A\xef\xff\xdf");
+//	fd_dump_xor_c16(bin, 0x0000, 0x05ff, "\xef\xff\xff\xde\x1f\xd0\x82\xe7\xf0\x00 A\xef\xff\x0f");
 	/* **** */
 
 	munmap(bin, sb.st_size);
