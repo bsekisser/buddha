@@ -1,0 +1,12 @@
+enum {
+	PSW_BIT_P,
+	PSW_BIT1,
+	PSW_BIT_OV,
+	PSW_BIT_RS0,
+	PSW_BIT_RS1,
+	PSW_BIT_F0,
+	PSW_BIT_AC,
+	PSW_BIT_CY,
+};
+
+#define PSW_CY				BTST(PSW, PSW_BIT_CY)

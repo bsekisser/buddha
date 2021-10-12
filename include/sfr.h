@@ -1,0 +1,16 @@
+enum {
+	_SFR_P0 = 0x80,
+	_SFR_SP = 0x81,
+	_SFR_DPL = 0x82,
+	_SFR_DPH = 0x83,
+	_SFR_DPCON = 0x86,
+	_SFR_PCON = 0x87,
+	_SFR_P1 = 0x90,
+	_SFR_P2 = 0xa0,
+	_SFR_IE = 0xa8,
+	_SFR_P3 = 0xb0,
+	_SFR_SPH = 0xbe,
+	_SFR_PSW = 0xd0,
+	_SFR_ACC = 0xe0,
+	_SFR_B = 0xf0,
+};

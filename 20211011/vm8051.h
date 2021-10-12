@@ -16,6 +16,7 @@ enum {
 	_SFR_SP = 0x81,
 	_SFR_DPL = 0x82,
 	_SFR_DPH = 0x83,
+	_SFR_DPCON = 0x86,
 	_SFR_PCON = 0x87,
 	_SFR_P1 = 0x90,
 	_SFR_P2 = 0xa0,
@@ -34,9 +35,13 @@ enum {
 #define ACC			SFR(ACC)
 #define PSW			SFR(PSW)
 
+typedef struct arg_t** arg_h;
 typedef struct arg_t* arg_p;
 typedef struct arg_t {
+	uint32_t		v;
 	uint8_t			type;
+	uint32_t		arg;
+	
 	union {
 		uint32_t	ea;
 
@@ -52,7 +57,6 @@ typedef struct arg_t {
 	};
 	
 	uint8_t			r;
-	uint8_t			v;
 }arg_t;
 
 typedef struct vm_t** vm_h;
@@ -62,7 +66,11 @@ typedef struct vm_t {
 #define CYCLE				vm->cycle
 
 	struct {
+		uint32_t			res;
+#define RES					IXR->res
+
 		arg_t				arg[2];
+		int					argc;
 #define ARG(_x)				(&IXR->arg[_x])
 
 		uint32_t			ip;
@@ -70,6 +78,11 @@ typedef struct vm_t {
 
 		uint16_t			ir;
 #define IR					IXR->ir
+
+		struct {
+			uint8_t			wb:1;
+#define WB					IXR->wb
+		};
 	}ixr;
 #define IXR					(&vm->ixr)
 

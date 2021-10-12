@@ -1,5 +1,8 @@
 void _add_set_flags(vm_p vm, uint8_t v1, uint8_t v2, uint8_t res);
 
+uint8_t bit_read(vm_p vm, uint8_t pat);
+void bit_write(vm_p vm, uint8_t pat, uint8_t set);
+
 uint8_t ld(vm_p vm, uint32_t pat);
 uint32_t ld_ia(vm_p vm, uint32_t *ppat, int count);
 uint32_t ld_ia_be(vm_p vm, uint32_t* ppat, int count);

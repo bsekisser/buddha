@@ -161,7 +161,7 @@ void st(vm_p vm, uint32_t pat, uint8_t data)
 
 /* **** */
 
-static uint8_t bit_read(vm_p vm, uint8_t pat)
+uint8_t bit_read(vm_p vm, uint8_t pat)
 {
 	const uint8_t ea = pat & ~0x7f;
 	const uint8_t pos = pat & 7;
@@ -169,7 +169,7 @@ static uint8_t bit_read(vm_p vm, uint8_t pat)
 	return((ld(vm, ea) >> pos) & 1);
 }
 
-static void bit_write(vm_p vm, uint8_t pat, uint8_t set)
+void bit_write(vm_p vm, uint8_t pat, uint8_t set)
 {
 	const uint8_t ea = pat & ~0x7f;
 	const uint8_t pos = pat & 7;
