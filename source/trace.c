@@ -15,6 +15,9 @@ const char spaces[61] = "                                                       
 		SOUT(_f, ##_args); \
 	break;
 
+#define SOUT(_f, _args...) \
+	dst += snprintf(dst, end - dst, _f, ##_args);
+
 void code_trace_end(vm_p vm)
 {
 	IXR->trace.pc = PC;
@@ -25,11 +28,10 @@ void code_trace_op(vm_p vm, const char* op_string)
 	IXR->trace.op_string = op_string;
 }
 
-#define SOUT(_f, _args...) \
-	dst += snprintf(dst, end - dst, _f, ##_args);
-
 #undef PC
 #define PC IXR->trace.pc
+
+#define tmp_DRl(_x) ({ tmp = (_x) << 1; tmp++; })
 
 void code_trace_out(vm_p vm)
 {
@@ -37,7 +39,7 @@ void code_trace_out(vm_p vm)
 
 	SOUT("0x%08X: ", IP);
 	
-	uint8_t count = PC - IP;
+	uint8_t tmp, count = PC - IP;
 	
 	for(int i = 0; i < 7; i++)
 	{
@@ -59,12 +61,21 @@ void code_trace_out(vm_p vm)
 			TRACE_ESAC(acc, "A")
 			TRACE_ESAC(addr16, "0x%08lX", _JMP(ARG(i)->arg));
 			TRACE_ESAC(atA_DPTR, "@A + DPTR");
+			TRACE_ESAC(atDPTR, "@DPTR");
+			TRACE_ESAC(bPSW_CY, "C");
 			TRACE_ESAC(bit, "$%02X.%01u", BIT_EA(ARG(i)->arg), BIT_POS(ARG(i)->arg));
 			TRACE_ESAC(dir, "$%02X", ARG(i)->arg);
+			TRACE_ESAC(rDPTR, "DPTR");
 			TRACE_ESAC(imm8, "#%02X", ARG(i)->v);
-			TRACE_ESAC(atRi, "@R%01u", ARG(i)->arg);
+			TRACE_ESAC(imm16, "#%04X", ARG(i)->v);
+			TRACE_ESAC(imm16be, "#%04X", ARG(i)->arg);
+			TRACE_ESAC(atRi, "@R%01u", IR_Ri);
 			TRACE_ESAC(rel, "0x%08X", _RJMP(ARG(i)->arg));
-			TRACE_ESAC(Rn, "R%01u", ARG(i)->arg);
+			TRACE_ESAC(Rn, "R%01u", IR_Rn);
+/* **** -- a5 -- 16 bit operations */
+			TRACE_ESAC(x2, "R%01u:R%01u", tmp_DRl(ARG(i)->arg), tmp);
+			TRACE_ESAC(X2y2, "R%01u:R%01u", tmp_DRl(ARG(i)->arg), tmp);
+			TRACE_ESAC(x2Y2, "R%01u:R%01u", tmp_DRl(ARG(i)->arg), tmp);
 		}
 	}
 	

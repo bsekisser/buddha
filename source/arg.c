@@ -12,10 +12,12 @@
 #include "sfr.h"
 #include "trace.h"
 
+#define ESAC_ARG(_esac) \
+	case _arg_t_##_esac:
 
 #undef ARG_ACTION
 #define ARG_ACTION(_esac, _action) \
-	case _arg_t_##_esac: \
+	ESAC_ARG(_esac) \
 		_action; \
 	break;
 
@@ -35,20 +37,28 @@ static arg_p arg_arg(vm_p vm, arg_type type)
 		ARG_ESAC(addr11, ld_ia(vm, &PC, 1));
 		ARG_ESAC(addr16, ld_ia_be(vm, &PC, 2));
 		ARG_ESAC(atA_DPTR, (ACC + DPTR));
-		ARG_ESAC(atDPTR, DPTR);
-		ARG_ESAC(atRi, IR_Ri);
+		ARG_ESAC(atDPTR, DPX);
 		ARG_ESAC(bit, ld_ia(vm, &PC, 1));
 		ARG_ESAC(dir, ld_ia(vm, &PC, 1));
 		ARG_ESAC(imm8, ld_ia(vm, &PC, 1));
 		ARG_ESAC(imm16, ld_ia(vm, &PC, 2));
 		ARG_ESAC(imm16be, ld_ia_be(vm, &PC, 2));
 		ARG_ESAC(rel, (int8_t)ld_ia(vm, &PC, 1));
-		ARG_ESAC(Rn, IR_Rn);
+/* **** -- a5 -- 16 bit operations */
+		ARG_ESAC(x2, (IR & 3));
+		ARG_ESAC(X2y2, ((IR >> 2) & 3));
+		ARG_ESAC(x2Y2, (IR & 3));
+/* **** -- ignore -- nop */
+		ESAC_ARG(rDPTR)
+		ESAC_ARG(acc)
+		ESAC_ARG(atRi)
+		ESAC_ARG(bPSW_CY);
+		ESAC_ARG(Rn)
+		break;
 /* **** */
 		default:
 			TRACE("type = 0x%02x", type);
 			exit(-1);
-		case _arg_t_acc:
 		break;
 	}
 
@@ -74,17 +84,27 @@ arg_p arg_src(vm_p vm, arg_type xt)
 	switch(x->type) {
 		ARG_ESAC(acc, ACC);
 		ARG_ESAC(addr11, ((PC & ~_BM(11)) | ((IR >> 5) << 8) | x->arg));
-		ARG_ESAC(addr16, x->arg);
 		ARG_ESAC(atA_DPTR, ld(vm, x->arg));
 		ARG_ESAC(atDPTR, ld(vm, x->arg));
-		ARG_ESAC(atRi, ld(vm, _Rn_(x->arg)));
+		ARG_ESAC(atRi, ld(vm, _IR_Ri_));
+		ARG_ESAC(bPSW_CY, PSW_CY);
 		ARG_ESAC(bit, ld_bit(vm, x->arg));
 		ARG_ESAC(dir, ld(vm, x->arg));
-		ARG_ESAC(imm8, x->arg);
-		ARG_ESAC(imm16, x->arg);
-		ARG_ESAC(imm16be, x->arg);
-//		ARG_ESAC(rel, x->arg);
+		ARG_ESAC(rDPTR, DPTR);
 		ARG_ESAC(Rn, _IR_Rn_);
+/* **** -- a5 -- 16 bit operations */
+		ARG_ESAC(x2, _DRn_(x->arg));
+		ARG_ESAC(X2y2, _DRn_(x->arg));
+		ARG_ESAC(x2Y2, _DRn_(x->arg));
+/* **** -- common arg */
+		ESAC_ARG(imm8)
+		ESAC_ARG(imm16)
+		ESAC_ARG(imm16be)
+		ARG_ESAC(rel, x->arg)
+/* **** -- ignore -- nop */
+		ESAC_ARG(addr16)
+		break;
+/* **** */
 		default:
 			TRACE("type = 0x%02x", x->type);
 			exit(-1);
@@ -94,26 +114,36 @@ arg_p arg_src(vm_p vm, arg_type xt)
 	return(x);
 }
 
+arg_wb_dr(vm_p vm, uint8_t r, uint32_t v)
+{
+	uint8_t tmp;
+
+	_Rn_(tmp = (r << 1)) = v & 0xff;
+	_Rn_(tmp + 1) = (v >> 8) & 0xff;
+}
+
 void arg_wb(vm_p vm, arg_p x, uint32_t v)
 {
-	if(!x) {
-		TRACE();
-		exit(-1);
-	}
-
-	switch(x->type) {
+	uint8_t tmp;
+	if(x) switch(x->type) {
 		ARG_ACTION(acc, ACC = v);
 		ARG_ACTION(atDPTR, st(vm, x->arg, v));
-		ARG_ACTION(atRi, st(vm, _Rn_(x->arg), v));
+		ARG_ACTION(atRi, st(vm, _IR_Ri_, v));
 		ARG_ACTION(bit, st_bit(vm, x->arg, v));
 		ARG_ACTION(dir, st(vm, x->arg, v));
-		ARG_ACTION(DPTR, DPTR = (DPTR & ~0xffff) | (v & 0xffff));
-		ARG_ACTION(DPX, DPTR = (DPTR & ~0xffff) | (v & 0xffff));
-		ARG_ACTION(PSW_CY, BSET_AS(PSW, PSW_BIT_CY, v));
+		ARG_ACTION(rDPTR, DPTR = (DPTR & ~0xffff) | (v & 0xffff));
+		ARG_ACTION(rDPX, DPTR = (DPTR & ~0xffff) | (v & 0xffff));
+		ARG_ACTION(bPSW_CY, BSET_AS(PSW, PSW_BIT_CY, v));
 		ARG_ACTION(Rn, _IR_Rn_ = v);
+/* **** -- a5 -- 16 bit operations */
+		ARG_ACTION(x2, arg_wb_dr(vm, x->arg, v));
+/* **** */
 		default:
 			TRACE("type = 0x%02x", x->type);
 			exit(-1);
 		break;
+	} else {
+		TRACE("???");
+		exit(-1);
 	}
 }

@@ -14,15 +14,19 @@ typedef enum arg_type {
 	_arg_t_atRi,
 	_arg_t_bit,
 	_arg_t_dir,
-	_arg_t_DPTR,
-	_arg_t_DPX,
+	_arg_t_rDPTR,
+	_arg_t_rDPX,
 	_arg_t_imm8,
 	_arg_t_imm16,
 	_arg_t_imm16be,
-	_arg_t_PSW_CY,
+	_arg_t_bPSW_CY,
 	_arg_t_rel,
 	_arg_t_Rn,
-	/* **** */
+	/* **** a5 -- 16 bit operations */
+	_arg_t_x2,
+	_arg_t_X2y2,
+	_arg_t_x2Y2,
+	/* **** -- implied */
 	_arg_t_implied_v = 0x81,
 }arg_type;
 

@@ -30,7 +30,7 @@ typedef struct ixr_t {
 	uint32_t				ip;
 #define IP					IXR->ip
 
-	uint16_t				ir;
+	uint32_t				ir;
 #define IR					IXR->ir
 
 	struct {
@@ -59,6 +59,10 @@ typedef struct vm_t {
 
 	uint16_t				dptr;
 #define DPTR				vm->dptr
+
+	struct {
+		uint8_t				post_inc;
+	}dpcon;
 
 	uint8_t					dpxl;
 #define DPXL				vm->dpxl
@@ -89,7 +93,10 @@ void vm_step(vm_p vm);
 #define PSW			SFR(PSW)
 
 #define _Rn_(_r) \
-	vm->iram[(PSW & (3 << 3)) | (_r & 7)]
+	vm->iram[(PSW & (3 << 3)) | ((_r) & 7)]
+
+#define _DRn_(_r) \
+	(_Rn_(_r << 1) | (_Rn_((_r << 1) + 1) << 8))
 
 #define IR_Ri						(IR & 1)
 #define IR_Rn						(IR & 7)
