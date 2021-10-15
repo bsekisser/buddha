@@ -13,9 +13,9 @@
 typedef struct arg_t** arg_h;
 typedef struct arg_t* arg_p;
 typedef struct arg_t {
-	uint32_t				arg;
 	uint32_t				v;
-	uint8_t					type;
+	uint32_t				arg;
+	uint32_t				type;
 }arg_t;
 
 typedef struct ixr_t* ixr_p;
@@ -96,11 +96,17 @@ void vm_step(vm_p vm);
 #define _Rn_(_r) \
 	vm->iram[(PSW & (3 << 3)) | ((_r) & 7)]
 
-#define _DRn_(_r) \
+#define _WRn_(_r) \
 	(_Rn_(_r) | (_Rn_((_r) + 1) << 8))
 
 #define IR_Ri						(IR & 1)
 #define IR_Rn						(IR & 7)
+
+#define IR_WRx						((IR & 3) << 1)
+#define IR_WRx_WR					((IR >> 1) & 6)
+#define IR_WR_WRy					IR_WRx
+#define IR_WRx_iWR					IR_WRx_WR
+#define IR_WR_iWRy					IR_WRx
 
 #define _IR_Ri_						_Rn_(IR_Ri)
 #define _IR_Rn_						_Rn_(IR_Rn)

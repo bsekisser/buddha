@@ -33,12 +33,16 @@ enum {
 
 	/* **** a5 -- 16 bit operattions*/
 
+	_adc16_k,
+	_add16_k,
 	_cmp16_k,
 	_dec16_k,
 	_inc16_k,
+	_sub16_k,
 
 	/* **** alias */
 
+	_addc16_k = _adc16_k,
 	_addc_k = _adc_k,
 	_anl_k = _and_k,
 	_orl_k = _or_k,
@@ -46,20 +50,22 @@ enum {
 	_xrl_k = _xor_k,
 };
 
-static void _alu_flags_add(vm_p vm, uint32_t x0, uint32_t x1, uint32_t res)
+static void _alu_flags_add(vm_p vm, uint32_t x0, uint32_t x1, uint32_t res, int x16)
 {
+	const uint8_t co_bit = x16 ? 15 : 7;
+	
 	/* carry & half carry */
 	uint32_t carry = (x0 & x1) | (x1 & ~res) | (~res & x0);
-	BSET_AS(PSW, PSW_BIT_CY, (carry >> 7) & 1);
-	BSET_AS(PSW, PSW_BIT_AC, (carry >> 3) & 1);
+	BSET_AS(PSW, PSW_BIT_CY, (carry >> co_bit) & 1);
+	BSET_AS(PSW, PSW_BIT_AC, (carry >> 3) & 1); /* x16 ?? */
 
 	/* overflow */
-	BSET_AS(PSW, PSW_BIT_OV, !!((((x0 & x1 & ~res) | (~x0 & ~x1 & res)) >> 7) & 1));
+	BSET_AS(PSW, PSW_BIT_OV, !!((((x0 & x1 & ~res) | (~x0 & ~x1 & res)) >> co_bit) & 1));
 }
 
-static void _alu_flags_sub(vm_p vm, uint32_t x0, uint32_t x1, uint32_t res)
+static void _alu_flags_sub(vm_p vm, uint32_t x0, uint32_t x1, uint32_t res, int x16)
 {
-	return(_alu_flags_add(vm, x0, -x1, res));
+	return(_alu_flags_add(vm, x0, -x1, res, x16));
 }
 
 #define alu_box(_x0, _esac, _x1) _alu_box(vm, _esac, ARG_T(_x0), ARG_T(_x1), 0)
@@ -76,11 +82,13 @@ static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 	uint32_t x1v = x1 ? x[1]->v : 1 << ((_inc16_k == esac) && IR & 4);
 
 	switch(esac) {
+		case	_adc16_k:
 		case	_adc_k:
+		case	_add16_k:
 		case	_add_k:
 			ops = "+";
 			RES += (x[1]->v + ((_adc_k == esac) ? !!PSW_CY : 0));
-			_alu_flags_add(vm, x[0]->v, x[1]->v, RES);
+			_alu_flags_add(vm, x[0]->v, x[1]->v, RES, 0);
 		break;
 		case	_and_k:
 			ops = "&";
@@ -109,12 +117,13 @@ static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 			wb = 0;
 			ops = "-";
 			RES -= x[1]->v;
-			_alu_flags_sub(vm, x[0]->v, x[1]->v, RES);
+			_alu_flags_sub(vm, x[0]->v, x[1]->v, RES, 1);
 		break;
+		case	_sub16_k:
 		case	_sub_k:
 			ops = "-";
 			RES -= (!!PSW_CY + x[1]->v);
-			_alu_flags_sub(vm, x[0]->v, x[1]->v, RES);
+			_alu_flags_sub(vm, x[0]->v, x[1]->v, RES, x16);
 		break;
 		case	_xor_k:
 			ops = "^";
@@ -155,8 +164,9 @@ static void _ajmp(vm_p vm, arg_type _addr11)
 	JMP(addr11->v);
 }
 
-
+#define add16(_x0, _x1) alu16_box(_x0, _add16_k, _x1)
 #define add(_x0, _x1) alu_box(_x0, _add_k, _x1)
+#define addc16(_x0, _x1) alu16_box(_x0, _addc16_k, _x1)
 #define addc(_x0, _x1) alu_box(_x0, _addc_k, _x1)
 
 #define anl(_x0, _x1) alu_box(_x0, _and_k, _x1)
@@ -262,8 +272,10 @@ static void _ljmp(vm_p vm, arg_type _addr16)
 }
 
 #define mov(_x0, _x1)				_mov(vm, ARG_T(_x0), ARG_T(_x1))
+#define mov16(_x0, _x1)				_mov(vm, ARG_T(_x0), ARG_T(_x1))
 static void _mov(vm_p vm, arg_type x0, arg_type x1)
 {
+	int x16 = 0;
 	arg_p x[2] = { arg_dst(vm, x0), arg_src(vm, x1) };
 
 
@@ -274,6 +286,9 @@ static void _mov(vm_p vm, arg_type x0, arg_type x1)
 	int src_atRi = (_arg_t_atRi == x[1]->type);
 
 	int dst_pi = dst_atDPTRx && vm->dpcon.post_inc;
+
+	if(x[1]->type & _arg_t_x16)
+		x16 = 1;
 
 	if(dst_atDPTRx) {
 		CODE_TRACE_COMMENT("0x%02X --> [0x%08X]%s",
@@ -287,8 +302,10 @@ static void _mov(vm_p vm, arg_type x0, arg_type x1)
 	} else if(src_atRi) {
 		CODE_TRACE_COMMENT("[0x%02X] --> 0x%02X",
 			_IR_Ri_, x[1]->v);
+	} else if(x16) {
+		CODE_TRACE_COMMENT("0x%04X", x[1]->v & 0xffff);
 	} else {
-		CODE_TRACE_COMMENT("0x%02X", x[1]->v);
+		CODE_TRACE_COMMENT("0x%02X", x[1]->v & 0xff);
 	}
 
 	arg_wb(vm, x[0], x[1]->v);
@@ -346,6 +363,7 @@ static void _setb(vm_p vm, arg_type _bit)
 
 #define sjmp(_rel) j_cc(_rel, 1)
 
+#define sub16(_x0, _x1) alu16_box(_x0, _sub16_k, _x1)
 #define subb(_x0, _x1) alu_box(_x0, _subb_k, _x1)
 
 #define swap(_x) _swap(vm, ARG_T(_x))
@@ -433,8 +451,10 @@ void vm_reset(vm_p vm)
 
 static int inst_a5(vm_p vm)
 {
-	IR <<= 8;
-	IR |= ld_ia(vm, &PC, 1);
+	do {
+		IR <<= 8;
+		IR |= ld_ia(vm, &PC, 1);
+	}while(0xa500 == IR);
 
 	code_trace_start(vm);
 //	TRACE();

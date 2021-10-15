@@ -21,6 +21,7 @@
 	INST(ESAC(0x74), 2, 0, mov(acc, imm8), "MOV") \
 	INST(ESAC(0x80), 2, 2, sjmp(rel), "SJMP") \
 	INST(ESAC(0x90), 3, 2, mov(rDPTR, imm16be), "MOV") \
+	INST(ESAC(0x93), 0, 2, movc(acc, atA_DPTRc), "MOVC") \
 	INST(ESAC(0x95), 2, 0, subb(acc, dir), "SUBB") \
 	INST(ESAC(0xa3), 0, 2, inc(rDPTR), "INC") \
 	INST(ESAC(0xc0), 2, 2, ppush(dir), "PUSH") \
@@ -34,9 +35,14 @@
 	INST(ESAC(0xf0), 0, 2, movx(atDPTRx, acc), "MOVX")
 
 #define INST_ESAC_LIST_a5 \
-		INST(ESAC_RANGE(0xa510, 0xa517), 2, 0, inc16(x2), "INC16") \
-		INST(ESAC_RANGE(0xa518, 0xa51f), 2, 0, dec16(x2), "DEC16") \
-		INST(ESAC_RANGE(0xa560, 0xa56f), 2, 0, cmp16(X2y2, x2Y2), "CMP16")
+	INST(ESAC_RANGE(0xa50010, 0xa5001f), 3, 0, add16(WRx_WR, WR_iWRy), "ADD16") \
+	INST(ESAC_RANGE(0xa500d0, 0xa500df), 3, 0, sub16(WRx_WR, WR_iWRy), "SUB16") \
+	INST(ESAC_RANGE(0xa50040, 0xa5004f), 3, 0, addc16(WRx_WR, WR_iWRy), "ADDC16") \
+	INST(ESAC_RANGE(0xa510, 0xa517), 2, 0, inc16(WRx), "INC16") \
+	INST(ESAC_RANGE(0xa518, 0xa51f), 2, 0, dec16(WRx), "DEC16") \
+	INST(ESAC_RANGE(0xa560, 0xa56f), 2, 0, cmp16(WRx_WR, WR_WRy), "CMP16") \
+	INST(ESAC_RANGE(0xa580, 0xa58f), 2, 0, mov16(WRx_WR, WR_WRy), "MOV16") \
+	INST(ESAC_RANGE(0xa5a0, 0xa5af), 2, 0, mov16(WRx_iWR, WR_iWRy), "MOV16")
 
 #define INST_ESAC_LIST_a5_MASKED
 
@@ -51,9 +57,12 @@
 	INST(ESAC_RANGE(0x26, 0x27), 0, 0, add(acc, atRi), "ADD") \
 	INST(ESAC_RANGE(0x36, 0x37), 0, 0, addc(acc, atRi), "ADDC") \
 	INST(ESAC_RANGE(0xe6, 0xe7), 0, 0, mov(acc, atRi), "MOV") \
+	INST(ESAC_RANGE(0xf6, 0xf7), 0, 0, mov(atRi, acc), "MOV")
 
 #define INST_ESAC_LIST_x8F \
 	INST(ESAC_RANGE(0x08, 0x0f), 0, 0, inc(Rn), "INC") \
+	INST(ESAC_RANGE(0x28, 0x2f), 0, 0, add(acc, Rn), "ADD") \
+	INST(ESAC_RANGE(0x38, 0x3f), 0, 0, addc(acc, Rn), "ADDC") \
 	INST(ESAC_RANGE(0x78, 0x7f), 2, 0, mov(Rn, imm8), "MOV") \
 	INST(ESAC_RANGE(0x88, 0x8f), 2, 2, mov(dir, Rn), "MOV") \
 	INST(ESAC_RANGE(0x98, 0x9f), 0, 0, subb(acc, Rn), "SUBB") \

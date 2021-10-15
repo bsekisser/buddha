@@ -48,7 +48,7 @@ void code_trace_start(vm_p vm)
 #undef PC
 #define PC							IXR->trace.pc
 
-#define tmp_DRl(_x)					({ tmp = _x; tmp++; })
+#define tmp_WRl(_x)					({ tmp = _x; tmp++; })
 
 void code_trace_out(vm_p vm)
 {
@@ -94,9 +94,11 @@ void code_trace_out(vm_p vm)
 			TRACE_ESAC(rel, "0x%08X", _RJMP(ARG(i)->arg));
 			TRACE_ESAC(Rn, "R%01u", IR_Rn);
 /* **** -- a5 -- 16 bit operations */
-			TRACE_ESAC(x2, "R%01u:R%01u", tmp_DRl(ARG(i)->arg), tmp);
-			TRACE_ESAC(X2y2, "R%01u:R%01u", tmp_DRl(ARG(i)->arg), tmp);
-			TRACE_ESAC(x2Y2, "R%01u:R%01u", tmp_DRl(ARG(i)->arg), tmp);
+			TRACE_ESAC(WRx, "R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
+			TRACE_ESAC(WRx_WR, "R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
+			TRACE_ESAC(WR_WRy, "R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
+			TRACE_ESAC(WRx_iWR, "R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
+			TRACE_ESAC(WR_iWRy, "@R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
 		}
 	}
 	

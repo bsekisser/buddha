@@ -45,9 +45,11 @@ static arg_p arg_arg(vm_p vm, arg_type type)
 		ARG_ESAC(imm16be, ld_ia_be(vm, &PC, 2));
 		ARG_ESAC(rel, (int8_t)ld_ia(vm, &PC, 1));
 /* **** -- a5 -- 16 bit operations */
-		ARG_ESAC(x2, (IR & 3) << 1);
-		ARG_ESAC(X2y2, ((IR >> 1) & 6));
-		ARG_ESAC(x2Y2, (IR & 3) << 1);
+		ARG_ESAC(WRx, IR_WRx);
+		ARG_ESAC(WRx_WR, IR_WRx_WR);
+		ARG_ESAC(WR_WRy, IR_WR_WRy);
+		ARG_ESAC(WRx_iWR, IR_WRx_iWR);
+		ARG_ESAC(WR_iWRy, IR_WR_iWRy);
 /* **** -- ignore -- nop */
 		ESAC_ARG(rDPTR)
 		ESAC_ARG(acc)
@@ -100,9 +102,10 @@ arg_p arg_src(vm_p vm, arg_type xt)
 		ARG_ESAC(rDPTR, DPTR);
 		ARG_ESAC(Rn, _IR_Rn_);
 /* **** -- a5 -- 16 bit operations */
-		ARG_ESAC(x2, _DRn_(x->arg));
-		ARG_ESAC(X2y2, _DRn_(x->arg));
-		ARG_ESAC(x2Y2, _DRn_(x->arg));
+		ARG_ESAC(WRx, _WRn_(x->arg));
+		ARG_ESAC(WRx_WR, _WRn_(x->arg));
+		ARG_ESAC(WR_WRy, _WRn_(x->arg));
+		ARG_ESAC(WR_iWRy, ld(vm, _WRn_(x->arg)));
 /* **** -- common arg */
 		ESAC_ARG(imm8)
 		ESAC_ARG(imm16)
@@ -121,7 +124,7 @@ arg_p arg_src(vm_p vm, arg_type xt)
 	return(x);
 }
 
-static void arg_wb_dr(vm_p vm, uint8_t r, uint32_t v)
+static void arg_wb_wr(vm_p vm, uint8_t r, uint32_t v)
 {
 	_Rn_(r) = v & 0xff;
 	_Rn_(r + 1) = (v >> 8) & 0xff;
@@ -139,7 +142,9 @@ void arg_wb(vm_p vm, arg_p x, uint32_t v)
 		ARG_ACTION(bPSW_CY, BSET_AS(PSW, PSW_BIT_CY, v));
 		ARG_ACTION(Rn, _IR_Rn_ = v);
 /* **** -- a5 -- 16 bit operations */
-		ARG_ACTION(x2, arg_wb_dr(vm, x->arg, v));
+		ARG_ACTION(WRx, arg_wb_wr(vm, x->arg, v));
+		ARG_ACTION(WRx_WR, arg_wb_wr(vm, x->arg, v));
+		ARG_ACTION(WRx_iWR, st(vm, _WRn_(x->arg), v));
 /* **** */
 		default:
 			TRACE("type = 0x%02x", x->type);
