@@ -17,7 +17,7 @@
 	INST(ESAC(0x54), 2, 0, anl(acc, imm8), "ANL") \
 	INST(ESAC(0x60), 2, 2, jz(rel), "JZ") \
 	INST(ESAC(0x70), 2, 2, jnz(rel), "JNZ") \
-	INST(ESAC(0x73), 0, 2, ljmp(atA_DPTR), "JMP") \
+	INST(ESAC(0x73), 0, 2, ljmp(atA_DPTRc), "JMP") \
 	INST(ESAC(0x74), 2, 0, mov(acc, imm8), "MOV") \
 	INST(ESAC(0x80), 2, 2, sjmp(rel), "SJMP") \
 	INST(ESAC(0x90), 3, 2, mov(rDPTR, imm16be), "MOV") \
@@ -28,9 +28,9 @@
 	INST(ESAC(0xc4), 0, 0, swap(acc), "SWAP") \
 	INST(ESAC(0xd0), 2, 2, ppop(dir), "POP") \
 	INST(ESAC(0xd2), 2, 0, setb(bit), "SETB") \
-	INST(ESAC(0xe0), 0, 2, mov(acc, atDPTR), "MOVX") \
+	INST(ESAC(0xe0), 0, 2, movx(acc, atDPTRx), "MOVX") \
 	INST(ESAC(0xe4), 0, 0, clr(acc), "CLR") \
-	INST(ESAC(0xf0), 0, 2, movx(atDPTR, acc), "MOVX")
+	INST(ESAC(0xf0), 0, 2, movx(atDPTRx, acc), "MOVX")
 
 #define INST_ESAC_LIST_a5 \
 		INST(ESAC_RANGE(0xa510, 0xa517), 2, 0, inc16(x2), "INC16") \

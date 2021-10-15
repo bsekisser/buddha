@@ -31,7 +31,7 @@ void code_trace_op(vm_p vm, const char* op_string)
 #undef PC
 #define PC IXR->trace.pc
 
-#define tmp_DRl(_x) ({ tmp = (_x) << 1; tmp++; })
+#define tmp_DRl(_x) ({ tmp = _x; tmp++; })
 
 void code_trace_out(vm_p vm)
 {
@@ -60,8 +60,8 @@ void code_trace_out(vm_p vm)
 		switch(ARG(i)->type) {
 			TRACE_ESAC(acc, "A")
 			TRACE_ESAC(addr16, "0x%08lX", _JMP(ARG(i)->arg));
-			TRACE_ESAC(atA_DPTR, "@A + DPTR");
-			TRACE_ESAC(atDPTR, "@DPTR");
+			TRACE_ESAC(atA_DPTRc, "@A + DPTR");
+			TRACE_ESAC(atDPTRx, "@DPTR");
 			TRACE_ESAC(bPSW_CY, "C");
 			TRACE_ESAC(bit, "$%02X.%01u", BIT_EA(ARG(i)->arg), BIT_POS(ARG(i)->arg));
 			TRACE_ESAC(dir, "$%02X", ARG(i)->arg);

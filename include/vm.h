@@ -66,7 +66,7 @@ typedef struct vm_t {
 
 	uint8_t					dpxl;
 #define DPXL				vm->dpxl
-#define DPX					(DPTR | (DPXL << 16))
+#define DPX					((DPTR & 0xffff) | (DPXL << 16))
 
 	uint16_t				sp;
 #define SP					vm->sp
@@ -96,7 +96,7 @@ void vm_step(vm_p vm);
 	vm->iram[(PSW & (3 << 3)) | ((_r) & 7)]
 
 #define _DRn_(_r) \
-	(_Rn_(_r << 1) | (_Rn_((_r << 1) + 1) << 8))
+	(_Rn_(_r) | (_Rn_((_r) + 1) << 8))
 
 #define IR_Ri						(IR & 1)
 #define IR_Rn						(IR & 7)
@@ -106,3 +106,6 @@ void vm_step(vm_p vm);
 
 #define	BIT_EA(_x)					((_x) & 0xf8)
 #define BIT_POS(_x)					((_x) & 7)
+
+#define DPTRc						(~0xffff | (DPTR & 0xffff))
+#define DPTRx						(0x00010000 | (DPTR & 0xffff))

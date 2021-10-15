@@ -273,21 +273,21 @@ static void _mov(vm_p vm, arg_type x0, arg_type x1)
 	arg_p x[2] = { arg_dst(vm, x0), arg_src(vm, x1) };
 	
 	
-	int dst_atDPTR = (_arg_t_atDPTR == x[0]->type);
+	int dst_atDPTRx = (_arg_t_atDPTRx == x[0]->type);
 	int dst_atRi = (_arg_t_atRi == x[0]->type);
 
-	int src_atDPTR = (_arg_t_atDPTR == x[1]->type);
+	int src_atDPTRx = (_arg_t_atDPTRx == x[1]->type);
 	int src_atRi = (_arg_t_atRi == x[1]->type);
 	
-	int dst_pi = dst_atDPTR && vm->dpcon.post_inc;
+	int dst_pi = dst_atDPTRx && vm->dpcon.post_inc;
 	
-	if(dst_atDPTR) {
+	if(dst_atDPTRx) {
 		CODE_TRACE_COMMENT("0x%02X --> [0x%08X]%s",
 			x[1]->v, x[0]->arg, dst_pi ? "++" : "");
 	} else if(dst_atRi) {
 		CODE_TRACE_COMMENT("0x%02X --> [0x%02X]",
 			x[1]->v, _IR_Ri_);
-	} else if(src_atDPTR) {
+	} else if(src_atDPTRx) {
 		CODE_TRACE_COMMENT("[0x%08X] --> 0x%02X",
 			x[1]->arg, x[1]->v);
 	} else if(src_atRi) {
