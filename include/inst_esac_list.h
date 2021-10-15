@@ -21,7 +21,8 @@
 	INST(ESAC(0x74), 2, 0, mov(acc, imm8), "MOV") \
 	INST(ESAC(0x80), 2, 2, sjmp(rel), "SJMP") \
 	INST(ESAC(0x90), 3, 2, mov(rDPTR, imm16be), "MOV") \
-	INST(ESAC(0xa3), 2, 0, inc(rDPTR), "INC") \
+	INST(ESAC(0x95), 2, 0, subb(acc, dir), "SUBB") \
+	INST(ESAC(0xa3), 0, 2, inc(rDPTR), "INC") \
 	INST(ESAC(0xc0), 2, 2, ppush(dir), "PUSH") \
 	INST(ESAC(0xc2), 2, 0, clr(bit), "CLR") \
 	INST(ESAC(0xc3), 0, 0, clr(bPSW_CY), "CLR") \
@@ -34,24 +35,28 @@
 
 #define INST_ESAC_LIST_a5 \
 		INST(ESAC_RANGE(0xa510, 0xa517), 2, 0, inc16(x2), "INC16") \
+		INST(ESAC_RANGE(0xa518, 0xa51f), 2, 0, dec16(x2), "DEC16") \
 		INST(ESAC_RANGE(0xa560, 0xa56f), 2, 0, cmp16(X2y2, x2Y2), "CMP16")
 
 #define INST_ESAC_LIST_a5_MASKED
 
 #define INST_ESAC_LIST_x5 \
 	INST(ESAC(0x25), 2, 0, add(acc, dir), "ADD") \
-	INST(ESAC(0x35), 2, 0, adc(acc, dir), "ADDC") \
+	INST(ESAC(0x35), 2, 0, addc(acc, dir), "ADDC") \
 	INST(ESAC(0x75), 3, 2, mov(dir, imm8), "MOV") \
 	INST(ESAC(0xc5), 2, 0, xch(acc, dir), "XCH") \
 	INST(ESAC(0xf5), 2, 0, mov(dir, acc), "MOV")
 
 #define INST_ESAC_LIST_x67 \
+	INST(ESAC_RANGE(0x26, 0x27), 0, 0, add(acc, atRi), "ADD") \
+	INST(ESAC_RANGE(0x36, 0x37), 0, 0, addc(acc, atRi), "ADDC") \
 	INST(ESAC_RANGE(0xe6, 0xe7), 0, 0, mov(acc, atRi), "MOV") \
 
 #define INST_ESAC_LIST_x8F \
 	INST(ESAC_RANGE(0x08, 0x0f), 0, 0, inc(Rn), "INC") \
 	INST(ESAC_RANGE(0x78, 0x7f), 2, 0, mov(Rn, imm8), "MOV") \
 	INST(ESAC_RANGE(0x88, 0x8f), 2, 2, mov(dir, Rn), "MOV") \
+	INST(ESAC_RANGE(0x98, 0x9f), 0, 0, subb(acc, Rn), "SUBB") \
 	INST(ESAC_RANGE(0xa8, 0xaf), 2, 2, mov(Rn, dir), "MOV") \
 	INST(ESAC_RANGE(0xc8, 0xcf), 0, 0, xch(acc, Rn), "XCH") \
 	INST(ESAC_RANGE(0xd8, 0xdf), 2, 2, djnz(Rn, rel), "DJNZ") \

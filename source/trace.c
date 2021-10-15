@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "vm.h"
 
@@ -18,32 +19,51 @@ const char spaces[61] = "                                                       
 #define SOUT(_f, _args...) \
 	dst += snprintf(dst, end - dst, _f, ##_args);
 
-void code_trace_end(vm_p vm)
+void code_trace_op(vm_p vm, const char* op_string, const uint32_t bytes)
 {
+	IXR->trace.op_string = op_string;
+	IXR->trace.op_bytes = bytes;
+}
+
+void code_trace_start(vm_p vm)
+{
+	IXR->trace.comment[0] = 0;
+	IXR->trace.op_string = "";
+
+/* **** !!!!! WARNING !!!! ****
+ * 
+ * Make SURE this is before modified pc below.
+ * 
+ * Failing to adhere to this warning
+ * 		WILL result in severe confusion!!!!
+ * 
+ */
+
 	IXR->trace.pc = PC;
 }
 
-void code_trace_op(vm_p vm, const char* op_string)
-{
-	IXR->trace.op_string = op_string;
-}
+/* **** */
 
+/* !!!!! WARNING MODIFIED PC BELOW THIS POINT !!!!! */
 #undef PC
-#define PC IXR->trace.pc
+#define PC							IXR->trace.pc
 
-#define tmp_DRl(_x) ({ tmp = _x; tmp++; })
+#define tmp_DRl(_x)					({ tmp = _x; tmp++; })
 
 void code_trace_out(vm_p vm)
 {
 	char out[256], *dst = out, *end = &out[255];
 
+//	TRACE("CYCLE: 0x%016llu, IP = 0x%08X, PC = 0x%08X, IR = 0x%08X", CYCLE, IP, PC, IR);
 	SOUT("0x%08X: ", IP);
 	
-	uint8_t tmp, count = PC - IP;
+	uint8_t tmp;
 	
-	for(int i = 0; i < 7; i++)
+	const int32_t pcip_count = PC - IP;
+
+	for(uint32_t i = 0; i < 7; i++)
 	{
-		if(i < count) {
+		if(i < pcip_count) {
 			SOUT("%02X ", ld(vm, IP + i));
 		} else {
 			SOUT("   ");
@@ -59,6 +79,7 @@ void code_trace_out(vm_p vm)
 
 		switch(ARG(i)->type) {
 			TRACE_ESAC(acc, "A")
+			TRACE_ESAC(addr11, "0x%08lX", _JMP(ARG(i)->v));
 			TRACE_ESAC(addr16, "0x%08lX", _JMP(ARG(i)->arg));
 			TRACE_ESAC(atA_DPTRc, "@A + DPTR");
 			TRACE_ESAC(atDPTRx, "@DPTR");
@@ -80,10 +101,15 @@ void code_trace_out(vm_p vm)
 	}
 	
 	printf("%s%s%s\n", out, &spaces[dst - out], IXR->trace.comment);
-}
 
-void code_trace_start(vm_p vm)
-{
-	IXR->trace.comment[0] = 0;
-	IXR->trace.op_string = "";
+	const uint32_t bytes = IXR->trace.op_bytes;
+
+	if((bytes ? bytes : 1) != (pcip_count ? pcip_count : 1))
+		TRACE("0x%08X: ***>>> !!! byte count mismatch -- pcip = 0x%08u, expected = 0x%08u!!! <<<***",
+			IP, pcip_count, bytes);
+
+	if(!pcip_count) {
+		TRACE("?? no pcip_count ??");
+		exit(-1);
+	}
 }

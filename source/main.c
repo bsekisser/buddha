@@ -103,8 +103,8 @@ int main(void)
 	if(1) {
 		load_code_table_entry(vm, 0);
 
-		load_code_table_entry(vm, 1);
-//		load_code_table_entry(vm, 2);
+//		load_code_table_entry(vm, 1);
+		load_code_table_entry(vm, 2);
 //		load_code_table_entry(vm, 3);
 
 		JMP(0x2200);

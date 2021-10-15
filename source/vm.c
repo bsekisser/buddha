@@ -34,13 +34,16 @@ enum {
 	/* **** a5 -- 16 bit operattions*/
 
 	_cmp16_k,
+	_dec16_k,
 	_inc16_k,
 
 	/* **** alias */
 
+	_addc_k = _adc_k,
 	_anl_k = _and_k,
 	_orl_k = _or_k,
-	_xrl_l = _xor_k,
+	_subb_k = _sub_k,
+	_xrl_k = _xor_k,
 };
 
 static void _alu_flags_add(vm_p vm, uint32_t x0, uint32_t x1, uint32_t res)
@@ -65,12 +68,12 @@ static void _alu_flags_sub(vm_p vm, uint32_t x0, uint32_t x1, uint32_t res)
 static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 {
 	arg_p x[2] = { arg_src(vm, x0), arg_src(vm, x1) };
-	
+
 	const char* ops;
 	int wb = 1;
 	RES = x[0]->v;
 
-	uint32_t x1v = x[1] ? x[1]->v : 1 << ((_inc16_k == esac) && IR & 4);
+	uint32_t x1v = x1 ? x[1]->v : 1 << ((_inc16_k == esac) && IR & 4);
 
 	switch(esac) {
 		case	_adc_k:
@@ -83,9 +86,10 @@ static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 			ops = "&";
 			RES &= x[1]->v;
 		break;
+		case	_dec16_k:
 		case	_dec_k:
 			ops = "-";
-			RES--;
+			RES -= x1v;
 		break;
 		case	_inc16_k:
 		case	_inc_k:
@@ -103,6 +107,10 @@ static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 		break;
 		case	_cmp16_k:
 			wb = 0;
+			ops = "-";
+			RES -= x[1]->v;
+			_alu_flags_sub(vm, x[0]->v, x[1]->v, RES);
+		break;
 		case	_sub_k:
 			ops = "-";
 			RES -= (!!PSW_CY + x[1]->v);
@@ -119,12 +127,10 @@ static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 	}
 
 	if(x16) {
-		CODE_TRACE_COMMENT("0x%04X %s 0x%04X --> 0x%04X", x[0]->v, ops, x1v, RES);
+		CODE_TRACE_COMMENT("0x%04X %s 0x%04X --> 0x%04X, CY = %X", x[0]->v & 0xffff, ops, x1v & 0xffff, RES & 0xffff, !!PSW_CY);
 	} else {
-		CODE_TRACE_COMMENT("0x%02X %s 0x%02X --> 0x%02X", x[0]->v, ops, x1v, RES);
+		CODE_TRACE_COMMENT("0x%02X %s 0x%02X --> 0x%02X", x[0]->v & 0xff, ops, x1v & 0xff, RES & 0xff);
 	}
-
-	code_trace_end(vm);
 
 	if(wb)
 		arg_wb(vm, x[0], RES);
@@ -146,14 +152,12 @@ static void _ajmp(vm_p vm, arg_type _addr11)
 		CODE_TRACE_COMMENT("0x%08X", addr11->v);
 	}
 
-	code_trace_end(vm);
-
 	JMP(addr11->v);
 }
 
 
 #define add(_x0, _x1) alu_box(_x0, _add_k, _x1)
-#define adc(_x0, _x1) alu_box(_x0, _adc_k, _x1)
+#define addc(_x0, _x1) alu_box(_x0, _addc_k, _x1)
 
 #define anl(_x0, _x1) alu_box(_x0, _and_k, _x1)
 
@@ -164,12 +168,12 @@ static void _clr(vm_p vm, arg_type _x)
 
 //	printf("_x = 0x%08x, x = 0x%08x, x->arg = 0x%08x\n", _x, x, x->arg);
 
-	code_trace_end(vm);
-
 	arg_wb(vm, x, 0);
 }
 
 #define cmp16(_x0, _x1) alu16_box(_x0, _cmp16_k, _x1)
+
+#define dec16(_x)					alu16_box(_x, _dec16_k, nop)
 
 #define djnz(_x, _rel) _djnz(vm, ARG_T(_x), ARG_T(_rel))
 static void _djnz(vm_p vm, arg_type _x, arg_type _rel)
@@ -180,8 +184,6 @@ static void _djnz(vm_p vm, arg_type _x, arg_type _rel)
 
 	CODE_TRACE_COMMENT("(0x%04X - 1 --> 0x%04X) will%sjump",
 		x->v, RES, RES ? " " : " not ");
-
-	code_trace_end(vm);
 
 	arg_wb(vm, x, RES);
 	if(RES)
@@ -202,8 +204,6 @@ static void _jb_wbc(vm_p vm, arg_type _bit, arg_type _rel, int wbc)
 
 	CODE_TRACE_COMMENT("will%sjump", _test_res ? " " : " not ");
 
-	code_trace_end(vm);
-	
 	if(_test_res)
 	{
 		if(wbc)
@@ -223,8 +223,6 @@ static void _j_cc(vm_p vm, arg_type _rel, const uint32_t _test_res)
 	if(IR != 0x80)
 		CODE_TRACE_COMMENT("will%sjump", _test_res ? " " : " not ");
 
-	code_trace_end(vm);
-
 	if(_test_res)
 		RJMP(rel->arg);
 }
@@ -239,8 +237,6 @@ static void _jnb(vm_p vm, arg_type _bit, arg_type _rel)
 
 	CODE_TRACE_COMMENT("will%sjump", _test_res ? " " : " not ");
 
-	code_trace_end(vm);
-	
 	if(_test_res)
 		RJMP(rel->arg);
 }
@@ -262,8 +258,6 @@ static void _ljmp(vm_p vm, arg_type _addr16)
 		CODE_TRACE_COMMENT("0x%08X", addr16->arg);
 	}
 
-	code_trace_end(vm);
-
 	JMP(addr16->arg);
 }
 
@@ -271,16 +265,16 @@ static void _ljmp(vm_p vm, arg_type _addr16)
 static void _mov(vm_p vm, arg_type x0, arg_type x1)
 {
 	arg_p x[2] = { arg_dst(vm, x0), arg_src(vm, x1) };
-	
-	
+
+
 	int dst_atDPTRx = (_arg_t_atDPTRx == x[0]->type);
 	int dst_atRi = (_arg_t_atRi == x[0]->type);
 
 	int src_atDPTRx = (_arg_t_atDPTRx == x[1]->type);
 	int src_atRi = (_arg_t_atRi == x[1]->type);
-	
+
 	int dst_pi = dst_atDPTRx && vm->dpcon.post_inc;
-	
+
 	if(dst_atDPTRx) {
 		CODE_TRACE_COMMENT("0x%02X --> [0x%08X]%s",
 			x[1]->v, x[0]->arg, dst_pi ? "++" : "");
@@ -296,8 +290,6 @@ static void _mov(vm_p vm, arg_type x0, arg_type x1)
 	} else {
 		CODE_TRACE_COMMENT("0x%02X", x[1]->v);
 	}
-
-	code_trace_end(vm);
 
 	arg_wb(vm, x[0], x[1]->v);
 
@@ -322,8 +314,6 @@ static void _ppop(vm_p vm, arg_type xt)
 
 	CODE_TRACE_COMMENT("(SP = 0x%04X), 0x%02X", SP, RES);
 
-	code_trace_end(vm);
-
 	arg_wb(vm, x, RES);
 }
 
@@ -331,11 +321,9 @@ static void _ppop(vm_p vm, arg_type xt)
 static void _ppush(vm_p vm, arg_type xt)
 {
 	arg_p x = arg_src(vm, xt);
-	
+
 	push(vm, x->v, 1);
 	CODE_TRACE_COMMENT("(SP = 0x%04X)", SP);
-	
-	code_trace_end(vm);
 }
 
 #define ret() _ret(vm)
@@ -345,8 +333,6 @@ static void _ret(vm_p vm)
 
 	CODE_TRACE_COMMENT("(SP = 0x%04X)", SP);
 
-	code_trace_end(vm);
-
 	JMP(new_pc);
 }
 
@@ -354,13 +340,13 @@ static void _ret(vm_p vm)
 static void _setb(vm_p vm, arg_type _bit)
 {
 	arg_p bit = arg_dst(vm, _bit);
-	
-	code_trace_end(vm);
 
 	arg_wb(vm, bit, 1);
 }
 
 #define sjmp(_rel) j_cc(_rel, 1)
+
+#define subb(_x0, _x1) alu_box(_x0, _subb_k, _x1)
 
 #define swap(_x) _swap(vm, ARG_T(_x))
 static void _swap(vm_p vm, arg_type _x)
@@ -371,8 +357,6 @@ static void _swap(vm_p vm, arg_type _x)
 
 	CODE_TRACE_COMMENT("0x%02X --> 0x%02X", x->v, RES);
 
-	code_trace_end(vm);
-
 	arg_wb(vm, x, RES);
 }
 
@@ -380,11 +364,9 @@ static void _swap(vm_p vm, arg_type _x)
 static void _xch(vm_p vm, arg_type x0, arg_type x1)
 {
 	arg_p x[2] = { arg_src(vm, x0), arg_src(vm, x1) };
-	
+
 	CODE_TRACE_COMMENT("0x%02X, 0x%02X --> 0x%02X, 0x%02X",
 		x[0]->v, x[1]->v, x[1]->v, x[0]->v);
-
-	code_trace_end(vm);
 
 	arg_wb(vm, x[0], x[1]->v);
 	arg_wb(vm, x[1], x[0]->v);
@@ -395,12 +377,11 @@ static void _xch(vm_p vm, arg_type x0, arg_type x1)
 #define INST(_esac, _bytes, _cycles, _action, _ops) \
 	static void _esac(vm_p vm) \
 	{ \
-		code_trace_op(vm, _ops); \
+		code_trace_op(vm, _ops, _bytes); \
 		\
 		_action; \
 		\
-		if(_cycles) \
-			CYCLE += _cycles - 1; \
+		CYCLE += (_cycles ? (_cycles - 1) : 0); \
 	}
 
 #define ESAC(_op) inst_##_op
@@ -437,10 +418,10 @@ INST_ESAC_LIST_a5_MASKED
 void vm_reset(vm_p vm)
 {
 	/* X = undefined */
-	
+
 	for(int i = 0; i < 256; i++)
 		_SFR_(i) = 0;
-	
+
 	SP = 7;
 	DPXL = 1;
 	SFR(P0) = 0xff;
@@ -454,37 +435,36 @@ static int inst_a5(vm_p vm)
 {
 	IR <<= 8;
 	IR |= ld_ia(vm, &PC, 1);
-	
-	TRACE();
+
+	code_trace_start(vm);
+//	TRACE();
 
 	INST_ESAC_LIST_a5_MASKED
 	switch(IR)
 	{
 		default:
-				code_trace_end(vm);
 				return(-1);
 		break;
 		INST_ESAC_LIST_a5
 	}
-	
+
 	return(0);
 }
 
 void vm_step(vm_p vm)
 {
 	int err = 0;
-	
+
 	IP = PC;
+	IR = ld_ia(vm, &PC, 1);
 
 	code_trace_start(vm);
 
-	IR = ld_ia(vm, &PC, 1);
-		
+//	TRACE("CYCLE: 0x%016llu, IP = 0x%08X, PC = 0x%08X, IR = 0x%08X", CYCLE, IP, PC, IR);
+
 	IXR->argc = 0;
 
 	CYCLE++;
-
-//	TRACE("CYCLE: 0x%016llu, IP = 0x%04X, IR = 0x%08X\n", CYCLE, IP, IR);
 
 	if(1 && (0xa5 == IR)) {
 		err = inst_a5(vm);
@@ -492,7 +472,6 @@ void vm_step(vm_p vm)
 		INST_ESAC_LIST_MASKED
 		switch(IR) {
 			default:
-					code_trace_end(vm);
 					err = -1;
 			break;
 			INST_ESAC_LIST

@@ -35,6 +35,7 @@ typedef struct ixr_t {
 
 	struct {
 		char				comment[256];
+		uint32_t			op_bytes;
 		const char*			op_string;
 		uint32_t			pc;
 	}trace;

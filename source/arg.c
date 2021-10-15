@@ -62,17 +62,25 @@ static arg_p arg_arg(vm_p vm, arg_type type)
 		break;
 	}
 
-	return(x);
-}
+	IXR->trace.pc = PC;
 
-arg_p arg_dst(vm_p vm, arg_type xt)
-{
-	return(arg_arg(vm, xt));
+	return(x);
 }
 
 #undef ARG_ESAC
 #define ARG_ESAC(_esac, _arg) \
 	ARG_ACTION(_esac, x->v = _arg)
+
+arg_p arg_dst(vm_p vm, arg_type xt)
+{
+	arg_p x = arg_arg(vm, xt);
+	
+	switch(x->type) {
+		ARG_ESAC(addr11, ((PC & ~_BM(11)) | ((IR >> 5) << 8) | x->arg));
+	}
+
+	return(x);
+}
 
 arg_p arg_src(vm_p vm, arg_type xt)
 {
@@ -83,7 +91,6 @@ arg_p arg_src(vm_p vm, arg_type xt)
 	
 	switch(x->type) {
 		ARG_ESAC(acc, ACC);
-		ARG_ESAC(addr11, ((PC & ~_BM(11)) | ((IR >> 5) << 8) | x->arg));
 		ARG_ESAC(atA_DPTRc, ld(vm, x->arg));
 		ARG_ESAC(atDPTRx, ld(vm, x->arg));
 		ARG_ESAC(atRi, ld(vm, _IR_Ri_));

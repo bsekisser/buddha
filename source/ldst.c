@@ -183,7 +183,7 @@ static void st_sfr(vm_p vm, uint32_t xpat, uint8_t data)
 			break;
 			default:
 				TRACE("unhandled sfr (0x%02X, 0x%08X)", pat, xpat);
-				exit(-1);
+//				exit(-1);
 			break;
 	}
 }
