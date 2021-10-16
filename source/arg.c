@@ -107,8 +107,8 @@ arg_p arg_src(vm_p vm, arg_type xt)
 		ARG_ESAC(WRx, _WRn_(x->arg));
 		ARG_ESAC(WRx_WR, _WRn_(x->arg));
 		ARG_ESAC(WR_WRy, _WRn_(x->arg));
-		ARG_ESAC(WR_iWRy, ld_direct(vm, _WRn_(x->arg)));
-		ARG_ESAC(iWRx_WR, ld_direct(vm, _WRn_(x->arg)));
+		ARG_ESAC(WR_iWRy, ld_indirect(vm, _WRn_(x->arg)));
+		ARG_ESAC(iWRx_WR, ld_indirect(vm, _WRn_(x->arg)));
 		ARG_ESAC(iWR_WRy, _WRn_(x->arg));
 /* **** -- common arg */
 		ESAC_ARG(imm8)
