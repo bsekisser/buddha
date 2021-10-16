@@ -23,6 +23,7 @@
 	INST(ESAC(0x90), 3, 2, mov(rDPTR, imm16be), "MOV") \
 	INST(ESAC(0x93), 0, 2, movc(acc, atA_DPTRc), "MOVC") \
 	INST(ESAC(0x95), 2, 0, subb(acc, dir), "SUBB") \
+	INST(ESAC(0xa2), 2, 2, mov(bPSW_CY, bit), "MOV") \
 	INST(ESAC(0xa3), 0, 2, inc(rDPTR), "INC") \
 	INST(ESAC(0xc0), 2, 2, ppush(dir), "PUSH") \
 	INST(ESAC(0xc2), 2, 0, clr(bit), "CLR") \

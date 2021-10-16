@@ -27,7 +27,7 @@ uint8_t ld_bit(vm_p vm, uint32_t pat)
 
 uint8_t ld_code(vm_p vm, uint32_t pat)
 {
-	if(pat < 0x2000)
+	if((pat & 0xffff) < 0x2000)
 		return(vm->irom[pat & 0x1fff]);
 	else
 		return(vm->xrom[pat & 0xffff]);
@@ -78,6 +78,7 @@ static uint8_t ld_sfr(vm_p vm, uint32_t xpat)
 /* 0xa8 */	case _SFR_IE:		/* interrupt control */
 			case 0xbc:			/* ? C1CAP2H ? */
 			case 0xbd:			/* ? C1CAP3H ? */
+			case 0xc4:			/* ? AD4 ? */
 /* 0xd0 */	case _SFR_PSW:
 /* 0xe0 */	case _SFR_ACC:
 /* 0xf0 */	case _SFR_B:
@@ -167,6 +168,7 @@ static void st_sfr(vm_p vm, uint32_t xpat, uint8_t data)
 /* 0xa8 */	case _SFR_IE:		/* interrupt control */
 			case 0xbc:			/* ? C1CAP2H ? */
 			case 0xbd:			/* ? C1CAP3H ? */
+			case 0xc4:			/* ? AD4 ? */
 /* 0xd0 */	case _SFR_PSW:
 /* 0xe0 */	case _SFR_ACC:
 /* 0xf0 */	case _SFR_B:
