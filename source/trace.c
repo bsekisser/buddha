@@ -28,6 +28,7 @@ void code_trace_op(vm_p vm, const char* op_string, const uint32_t bytes)
 void code_trace_start(vm_p vm)
 {
 	IXR->trace.comment[0] = 0;
+	IXR->trace.op_bytes = 0;
 	IXR->trace.op_string = "";
 
 /* **** !!!!! WARNING !!!! ****
@@ -61,10 +62,10 @@ void code_trace_out(vm_p vm)
 	
 	const int32_t pcip_count = PC - IP;
 
-	for(uint32_t i = 0; i < 7; i++)
+	for(uint32_t i = IP; i < IP + 7; i++)
 	{
-		if(i < pcip_count) {
-			SOUT("%02X ", ld(vm, IP + i));
+		if(i < PC) {
+			SOUT("%02X ", ld_code(vm, i));
 		} else {
 			SOUT("   ");
 		}
@@ -99,6 +100,8 @@ void code_trace_out(vm_p vm)
 			TRACE_ESAC(WR_WRy, "R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
 			TRACE_ESAC(WRx_iWR, "R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
 			TRACE_ESAC(WR_iWRy, "@R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
+			TRACE_ESAC(iWRx_WR, "@R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
+			TRACE_ESAC(iWR_WRy, "R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
 		}
 	}
 	

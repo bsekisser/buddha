@@ -104,14 +104,14 @@ int main(void)
 		load_code_table_entry(vm, 0);
 
 //		load_code_table_entry(vm, 1);
-		load_code_table_entry(vm, 2);
-//		load_code_table_entry(vm, 3);
+//		load_code_table_entry(vm, 2);
+		load_code_table_entry(vm, 3);
 
 		JMP(0x2200);
 	} else
 		JMP(0x8000);
 
-	for(int i = 0; i < 1024; i++)
+	for(int i = 0; i < 4096; i++)
 		vm_step(vm);
 
 	TRACE("CYCLE = 0x%016llx", CYCLE);

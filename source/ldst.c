@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "vm.h"
+#include "ldst.h"
 #include "sfr.h"
 #include "trace.h"
 
@@ -14,33 +15,6 @@ static void st_sfr(vm_p vm, uint32_t pat, uint8_t data);
 		_action; \
 	break;
 
-uint8_t ld(vm_p vm, uint32_t pat)
-{
-	uint8_t segment = (pat >> 16) & 0xff;
-	uint8_t page = (pat >> 8) & 0xff;
-	
-	switch(segment) {
-		case 0xff:
-			if(page <= 0x1f)
-				return(vm->irom[pat & 0x1fff]);
-			else
-				return(vm->xrom[pat & 0xffff]);
-		break;
-		case 0x01:
-			return(vm->xram[pat & 0xffff]);
-		break;
-		case 0x00:
-			if(pat < 0x80)
-				return(vm->iram[pat & 0xff]);
-			else
-				return(ld_sfr(vm, pat));
-		break;
-	}
-
-	return(0xff);
-//	return((pat >> 8) & 0xff);
-}
-
 uint8_t ld_bit(vm_p vm, uint32_t pat)
 {
 	const uint8_t ea = BIT_EA(pat);
@@ -48,28 +22,41 @@ uint8_t ld_bit(vm_p vm, uint32_t pat)
 	
 //	printf("pat = 0x%08x, ea = 0x%02x.%01u\n", pat, ea, pos);
 	
-	return((ld(vm, ea) >> pos) & 1);
+	return((ld_direct(vm, ea) >> pos) & 1);
 }
 
-uint32_t ld_ia(vm_p vm, uint32_t *ppat, int count)
+uint8_t ld_code(vm_p vm, uint32_t pat)
 {
-	uint32_t data = 0;
-	
-	for(int i = 0; i < count; i++)
-		data |= (ld(vm, (*ppat)++) << (i << 3));
-
-	return(data);
+	if(pat < 0x2000)
+		return(vm->irom[pat & 0x1fff]);
+	else
+		return(vm->xrom[pat & 0xffff]);
 }
-	
 
-uint32_t ld_ia_be(vm_p vm, uint32_t* ppat, int count)
+uint32_t ld_code_ia(vm_p vm, uint32_t* ppat, int count)
 {
 	uint32_t data = 0;
 	
 	for(int i = count; i; i--)
-		data = data << 8 | ld(vm, (*ppat)++);
-
+		data = (data << 8) | ld_code(vm, (*ppat)++);
+	
 	return(data);
+}
+
+uint8_t ld_direct(vm_p vm, uint32_t pat)
+{
+	if(pat < 0x80)
+		return(vm->iram[pat & 0x7f]);
+	else
+		return(ld_sfr(vm, pat));
+}
+	
+uint8_t ld_indirect(vm_p vm, uint32_t pat)
+{
+	if(pat < 0x100)
+		return(vm->iram[pat & 0xff]);
+	else
+		return(vm->xram[pat & 0xffff]);
 }
 
 static uint8_t ld_sfr(vm_p vm, uint32_t xpat)
@@ -97,7 +84,7 @@ static uint8_t ld_sfr(vm_p vm, uint32_t xpat)
 				return(_SFR_(pat));
 			break;
 			default:
-				TRACE("unhandled sfr (0x%02X, 0x%08X)", pat, xpat);
+				TRACE("@0x%08X: unhandled sfr (0x%02X, 0x%08X)", IP, pat, xpat);
 //				exit(-1);
 			break;
 	}
@@ -105,25 +92,12 @@ static uint8_t ld_sfr(vm_p vm, uint32_t xpat)
 	return(0xff);
 }
 
-/* **** */
-
-void st(vm_p vm, uint32_t pat, uint8_t data)
+uint8_t ld_xternal(vm_p vm, uint32_t pat)
 {
-	uint8_t segment = (pat >> 16) & 0xff;
-//	uint8_t page = (pat >> 8) & 0xff;
-
-	switch(segment) {
-		case 0x01:
-			vm->xram[pat & 0xffff] = data;
-		break;
-		case 0x00:
-			if(pat < 80)
-				vm->iram[pat & 0xff] = data;
-			else
-				st_sfr(vm, pat, data);
-		break;
-	}
+	return(vm->xram[pat & 0xffff]);
 }
+
+/* **** */
 
 void st_bit(vm_p vm, uint32_t pat, uint8_t set)
 {
@@ -134,11 +108,20 @@ void st_bit(vm_p vm, uint32_t pat, uint8_t set)
 	
 //	printf("pat = 0x%08x, ea = 0x%02x.%01u\n", pat, ea, pos);
 
-	uint8_t data = ld(vm, ea) & mask;
+	uint8_t data = ld_direct(vm, ea) & mask;
 	data |= (!!set) << pos;
 	
-	st(vm, ea, data);
+	st_direct(vm, ea, data);
 }
+
+void st_direct(vm_p vm, uint32_t pat, uint8_t data)
+{
+	if(pat < 0x80)
+		vm->iram[pat & 0xff] = data;
+	else
+		st_sfr(vm, pat, data);
+}
+
 
 static void st_dpcon(vm_p vm, uint8_t data)
 {
@@ -158,6 +141,14 @@ static void st_dpcon(vm_p vm, uint8_t data)
 	SFR(DPCON) = data;
 }
 
+void st_indirect(vm_p vm, uint32_t pat, uint8_t data)
+{
+	if(pat < 0x100)
+		vm->iram[pat & 0xff] = data;
+	else
+		vm->xram[pat & 0xffff] = data;
+}
+	
 static void st_sfr(vm_p vm, uint32_t xpat, uint8_t data)
 {
 	const uint8_t pat = xpat & 0x7f;
@@ -182,8 +173,13 @@ static void st_sfr(vm_p vm, uint32_t xpat, uint8_t data)
 				_SFR_(pat) = data;
 			break;
 			default:
-				TRACE("unhandled sfr (0x%02X, 0x%08X)", pat, xpat);
+				TRACE("@0x%08X: unhandled sfr (0x%02X, 0x%08X)", IP, pat, xpat);
 //				exit(-1);
 			break;
 	}
+}
+
+void st_xternal(vm_p vm, uint32_t pat, uint8_t data)
+{
+	vm->xram[pat & 0xffff] = data;
 }

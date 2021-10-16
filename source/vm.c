@@ -390,6 +390,8 @@ static void _xch(vm_p vm, arg_type x0, arg_type x1)
 	arg_wb(vm, x[1], x[0]->v);
 }
 
+#define xrl(_x0, _x1) alu_box(_x0, _xrl_k, _x1)
+
 /* **** */
 
 #define INST(_esac, _bytes, _cycles, _action, _ops) \
@@ -409,7 +411,7 @@ static void _xch(vm_p vm, arg_type x0, arg_type x1)
 INST_ESAC_LIST
 INST_ESAC_LIST_MASKED
 INST_ESAC_LIST_a5
-INST_ESAC_LIST_a5_MASKED
+INST_ESAC_LIST_MASKED_a5
 
 #undef ESAC
 #define ESAC(_op) \
@@ -449,34 +451,16 @@ void vm_reset(vm_p vm)
 	PC = 0xffff0000;
 }
 
-static int inst_a5(vm_p vm)
-{
-	do {
-		IR <<= 8;
-		IR |= ld_ia(vm, &PC, 1);
-	}while(0xa500 == IR);
-
-	code_trace_start(vm);
-//	TRACE();
-
-	INST_ESAC_LIST_a5_MASKED
-	switch(IR)
-	{
-		default:
-				return(-1);
-		break;
-		INST_ESAC_LIST_a5
-	}
-
-	return(0);
-}
-
 void vm_step(vm_p vm)
 {
 	int err = 0;
 
 	IP = PC;
-	IR = ld_ia(vm, &PC, 1);
+	IR = 0;
+
+	do {
+		IR = (IR << 8) | ld_code_ia(vm, &PC, 1);
+	}while((IR == 0xa5) | (IR == 0xa500));
 
 	code_trace_start(vm);
 
@@ -486,16 +470,14 @@ void vm_step(vm_p vm)
 
 	CYCLE++;
 
-	if(1 && (0xa5 == IR)) {
-		err = inst_a5(vm);
-	} else {
-		INST_ESAC_LIST_MASKED
-		switch(IR) {
-			default:
-					err = -1;
-			break;
-			INST_ESAC_LIST
-		}
+	INST_ESAC_LIST_MASKED
+	INST_ESAC_LIST_MASKED_a5
+	switch(IR) {
+		default:
+				err = -1;
+		break;
+		INST_ESAC_LIST
+		INST_ESAC_LIST_a5
 	}
 
 	code_trace_out(vm);

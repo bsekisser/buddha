@@ -107,6 +107,8 @@ void vm_step(vm_p vm);
 #define IR_WR_WRy					IR_WRx
 #define IR_WRx_iWR					IR_WRx_WR
 #define IR_WR_iWRy					IR_WRx
+#define IR_iWRx_WR					IR_WRx
+#define IR_iWR_WRy					IR_WRx_WR
 
 #define _IR_Ri_						_Rn_(IR_Ri)
 #define _IR_Rn_						_Rn_(IR_Rn)

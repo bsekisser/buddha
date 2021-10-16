@@ -35,22 +35,27 @@
 	INST(ESAC(0xf0), 0, 2, movx(atDPTRx, acc), "MOVX")
 
 #define INST_ESAC_LIST_a5 \
-	INST(ESAC_RANGE(0xa50010, 0xa5001f), 3, 0, add16(WRx_WR, WR_iWRy), "ADD16") \
-	INST(ESAC_RANGE(0xa500d0, 0xa500df), 3, 0, sub16(WRx_WR, WR_iWRy), "SUB16") \
-	INST(ESAC_RANGE(0xa50040, 0xa5004f), 3, 0, addc16(WRx_WR, WR_iWRy), "ADDC16") \
+	INST(ESAC_RANGE(0xa50010, 0xa5001f), 3, 0, add16(WRx_iWR, WR_iWRy), "ADD16") \
+	INST(ESAC_RANGE(0xa50040, 0xa5004f), 3, 0, addc16(WRx_iWR, WR_iWRy), "ADDC16") \
+	INST(ESAC_RANGE(0xa50060, 0xa5006f), 3, 0, add16(WRx_WR, WR_WRy), "ADD16s") /* ???? */\
+	INST(ESAC_RANGE(0xa50090, 0xa5009f), 3, 0, addc16(WRx_WR, WR_WRy), "ADDC16s") /* ???? */\
+	INST(ESAC_RANGE(0xa500c0, 0xa500cf), 3, 0, sub16(WRx_WR, WR_WRy), "SUB16") \
+	INST(ESAC_RANGE(0xa500d0, 0xa500df), 3, 0, sub16(WRx_iWR, WR_iWRy), "SUB16") \
 	INST(ESAC_RANGE(0xa510, 0xa517), 2, 0, inc16(WRx), "INC16") \
 	INST(ESAC_RANGE(0xa518, 0xa51f), 2, 0, dec16(WRx), "DEC16") \
 	INST(ESAC_RANGE(0xa560, 0xa56f), 2, 0, cmp16(WRx_WR, WR_WRy), "CMP16") \
 	INST(ESAC_RANGE(0xa580, 0xa58f), 2, 0, mov16(WRx_WR, WR_WRy), "MOV16") \
+	INST(ESAC_RANGE(0xa590, 0xa59f), 2, 0, mov16(iWRx_WR, iWR_WRy), "MOV16") \
 	INST(ESAC_RANGE(0xa5a0, 0xa5af), 2, 0, mov16(WRx_iWR, WR_iWRy), "MOV16")
 
-#define INST_ESAC_LIST_a5_MASKED
+#define INST_ESAC_LIST_MASKED_a5
 
 #define INST_ESAC_LIST_x5 \
 	INST(ESAC(0x25), 2, 0, add(acc, dir), "ADD") \
 	INST(ESAC(0x35), 2, 0, addc(acc, dir), "ADDC") \
 	INST(ESAC(0x75), 3, 2, mov(dir, imm8), "MOV") \
 	INST(ESAC(0xc5), 2, 0, xch(acc, dir), "XCH") \
+	INST(ESAC(0xe5), 2, 0, mov(acc, dir), "MOV") \
 	INST(ESAC(0xf5), 2, 0, mov(dir, acc), "MOV")
 
 #define INST_ESAC_LIST_x67 \
@@ -63,6 +68,7 @@
 	INST(ESAC_RANGE(0x08, 0x0f), 0, 0, inc(Rn), "INC") \
 	INST(ESAC_RANGE(0x28, 0x2f), 0, 0, add(acc, Rn), "ADD") \
 	INST(ESAC_RANGE(0x38, 0x3f), 0, 0, addc(acc, Rn), "ADDC") \
+	INST(ESAC_RANGE(0x68, 0x6f), 0, 0, xrl(acc, Rn), "XRL") \
 	INST(ESAC_RANGE(0x78, 0x7f), 2, 0, mov(Rn, imm8), "MOV") \
 	INST(ESAC_RANGE(0x88, 0x8f), 2, 2, mov(dir, Rn), "MOV") \
 	INST(ESAC_RANGE(0x98, 0x9f), 0, 0, subb(acc, Rn), "SUBB") \

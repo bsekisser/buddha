@@ -26,10 +26,15 @@ typedef enum arg_type {
 	/* **** a5 -- 16 bit operations */
 	_arg_t_x16 = 1 << 9,
 	_arg_t_WRx,			/* WRx */
+
 	_arg_t_WRx_WR,		/* x, y -- x<<2 | y -- WRx, WRy */
 	_arg_t_WR_WRy,
-	_arg_t_WRx_iWR,		/* x, y -- x<<2 | y&f -- WRx, iWRy */
+
+	_arg_t_WRx_iWR,		/* x, y -- x<<2 | y&0xf -- WRx, iWRy */
 	_arg_t_WR_iWRy,
+
+	_arg_t_iWRx_WR,		/* x, y -- x&0xf | y<<2 -- iWRx, WRy */
+	_arg_t_iWR_WRy,
 	/* **** -- implied */
 //	_arg_t_implied_v = 1 << 31,
 }arg_type;
