@@ -100,7 +100,7 @@ int main(void)
 //	memcpy(vm->xram, vm->buddha_rom, 65536);
 	memcpy(vm->xrom, vm->buddha_rom, 65536);
 
-	if(0) {
+	if(1) {
 		load_code_table_entry(vm, 0);
 
 		load_code_table_entry(vm, 1);

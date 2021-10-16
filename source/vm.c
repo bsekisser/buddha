@@ -154,7 +154,7 @@ static void _ajmp(vm_p vm, arg_type _addr11)
 {
 	arg_p addr11 = arg_dst(vm, _addr11);
 
-	if(IR & 0x10) {
+	if(0x11 == (IR & 0x1f)) {
 		push(vm, PC, 2);
 		CODE_TRACE_COMMENT("(SP = 0x%02X) 0x%08X", SP, addr11->v);
 	} else {
@@ -261,7 +261,7 @@ static void _ljmp(vm_p vm, arg_type _addr16)
 {
 	arg_p addr16 = arg_dst(vm, _addr16);
 
-	if(IR & 0x10) {
+	if(0x12 == IR) {
 		push(vm, PC, 2);
 		CODE_TRACE_COMMENT("(SP = 0x%02X) 0x%08X", SP, addr16->arg);
 	} else {

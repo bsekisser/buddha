@@ -118,7 +118,7 @@ void st_bit(vm_p vm, uint32_t pat, uint8_t set)
 void st_direct(vm_p vm, uint32_t pat, uint8_t data)
 {
 	if(pat < 0x80)
-		vm->iram[pat & 0xff] = data;
+		vm->iram[pat & 0x7f] = data;
 	else
 		st_sfr(vm, pat, data);
 }
