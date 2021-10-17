@@ -23,12 +23,17 @@ enum {
 	_adc_k,
 	_add_k,
 	_and_k,
+	_cpl_k,
 	_dec_k,
 	_inc_k,
 	_or_k,
-	_mov_k,
-	_movc_k,
-	_movx_k,
+//	_mov_k,
+//	_movc_k,
+//	_movx_k,
+	_rl_k,
+	_rlc_k,
+	_rr_k,
+	_rrc_k,
 	_sub_k,
 	_xor_k,
 
@@ -95,21 +100,6 @@ static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 			ops = "&";
 			RES &= x[1]->v;
 		break;
-		case	_dec16_k:
-		case	_dec_k:
-			ops = "-";
-			RES -= x1v;
-		break;
-		case	_inc16_k:
-		case	_inc_k:
-			ops = "+";
-			RES += x1v;
-		break;
-/*		case	_mov_k:
-			ops = "--";
-			RES = x[1]->v;
-		break;
-*/
 		case	_or_k:
 			ops = "|";
 			RES |= x[1]->v;
@@ -136,16 +126,75 @@ static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 		break;
 	}
 
-	if(x16) {
-		CODE_TRACE_COMMENT("0x%04X %s 0x%04X --> 0x%04X, CY = %X", x[0]->v & 0xffff, ops, x1v & 0xffff, RES & 0xffff, !!PSW_CY);
-	} else {
-		CODE_TRACE_COMMENT("0x%02X %s 0x%02X --> 0x%02X", x[0]->v & 0xff, ops, x1v & 0xff, RES & 0xff);
-	}
+	CODE_TRACE_COMMENT("0x%08X %s 0x%08X --> 0x%08X", x[0]->v, ops, x1v, RES);
 
 	if(wb)
 		arg_wb(vm, x[0], RES);
 }
 
+#define unary_box(_x0, _esac, _x1v) _unary_box(vm, _esac, ARG_T(_x0), _x1v, 0)
+#define unary16_box(_x0, _esac, _x1v) _unary_box(vm, _esac, ARG_T(_x0), _x1v, 1)
+static void _unary_box(vm_p vm, int esac, arg_type _x0, int32_t x1v, const int x16)
+{
+	arg_p x = arg_src(vm, _x0);
+
+	const char* ops = "";
+	int set_cy = 0;
+
+	RES = x->v;
+
+	switch(esac) {
+		case	_cpl_k:
+			ops = "~";
+			RES = ~RES;
+		break;
+		case	_dec16_k:
+		case	_dec_k:
+			ops = "-";
+			RES -= x1v;
+		break;
+		case	_inc16_k:
+		case	_inc_k:
+			ops = "+";
+			RES += x1v;
+		break;
+		case _rl_k:
+			ops = "<<<";
+			RES = _rol(RES, x1v);
+		break;
+		case _rlc_k: {
+			ops = "(CY)<<<(CY)";
+			RES = _rol_c(RES, x1v, !!PSW_CY, &set_cy);
+			BSET_AS(PSW, PSW_BIT_CY, !!set_cy);
+		}break;
+		case _rr_k:
+			ops = ">>>";
+			RES = _ror(RES, x1v);
+		break;
+		case _rrc_k: {
+			ops = "(CY)>>>(CY)";
+			RES = _ror_c(RES, x1v, !!PSW_CY, &set_cy);
+			BSET_AS(PSW, PSW_BIT_CY, !!set_cy);
+		}break;
+		default:
+			TRACE("esac = 0x%02X", esac);
+			exit(-1);
+		break;
+	}
+
+	switch(esac) {
+		case _rlc_k:
+		case _rrc_k:
+			CODE_TRACE_COMMENT("0x%08X %s 0x%08X --> 0x%08X (CY = %01u)", x->v, ops, x1v, RES, !!set_cy);
+		break;
+		default:
+			CODE_TRACE_COMMENT("0x%08X %s 0x%08X --> 0x%08X", x->v, ops, x1v, RES);
+		break;
+	}
+
+	arg_wb(vm, x, RES);
+}
+	
 /* **** */
 
 
@@ -182,10 +231,71 @@ static void _clr(vm_p vm, arg_type _x)
 	arg_wb(vm, x, 0);
 }
 
+#define cjne(_x0, _x1, _rel) _cjne(vm, ARG_T(_x0), ARG_T(_x1), ARG_T(_rel))
+static void _cjne(vm_p vm, arg_type _x0, arg_type _x1, arg_type _rel)
+{
+	arg_p x[2] = { arg_src(vm, _x0), arg_src(vm, _x1) };
+	arg_p rel = arg_dst(vm, _rel);
+	
+	RES = (x[0]->v != x[1]->v);
+	
+	CODE_TRACE_COMMENT("(0x%02X, 0x%02X) will%sjump",
+		x[0]->v, x[1]->v, RES ? " " : " not ");
+
+	BSET_AS(PSW, PSW_BIT_CY, !!(x[0]->v < x[1]->v));
+		
+	if(RES)
+		RJMP(rel->arg);
+}
+
 #define cmp16(_x0, _x1) alu16_box(_x0, _cmp16_k, _x1)
 
-#define dec(_x) alu_box(_x, _dec_k, nop)
-#define dec16(_x) alu16_box(_x, _dec16_k, nop)
+#define cpl(_x) unary_box(_x, _cpl_k, 0)
+
+#define da(_x) _da(vm, ARG_T(_x))
+static void _da(vm_p vm, arg_type xt)
+{
+	arg_p x = arg_src(vm, xt);
+	
+	RES = x->v;
+	
+	if((0x09 < (RES & 0x0f)) || _PSW(AC))
+		RES += 0x06;
+	
+	if((0x90 < (RES & 0xf0)) || PSW_CY)
+		RES += 0x60;
+	
+	CODE_TRACE_COMMENT("0x%08X --> 0x%08X", x->v, RES);
+
+	arg_wb(vm, x, RES);
+}
+
+#define dec(_x) unary_box(_x, _dec_k, 1)
+#define dec16(_x) unary16_box(_x, _dec16_k, 1)
+
+#define div(_x0, _x1) _div(vm, ARG_T(_x0), ARG_T(_x1))
+static void _div(vm_p vm, arg_type _x0, arg_type _x1)
+{
+	arg_p x[2] = { arg_src(vm, _x0), arg_src(vm, _x1) };
+
+	BCLR(PSW, PSW_BIT_CY);
+	
+	BSET_AS(PSW, PSW_BIT_OV, !!(0 == BBB));
+	
+	uint32_t mod = 0;
+	
+	if(0 != BBB) {
+		RES = x[0]->v / x[1]->v;
+		mod = x[0]->v % x[1]->v;
+
+		CODE_TRACE_COMMENT("0x%08X / 0x%08X --> 0x%08X (0X%08X)", x[0]->v, x[1]->v, RES, mod);
+
+		arg_wb(vm, x[0], RES);
+		arg_wb(vm, x[1], mod);
+	} else {
+		CODE_TRACE_COMMENT("division by zero");
+	}
+}
 
 #define djnz(_x, _rel) _djnz(vm, ARG_T(_x), ARG_T(_rel))
 static void _djnz(vm_p vm, arg_type _x, arg_type _rel)
@@ -202,8 +312,8 @@ static void _djnz(vm_p vm, arg_type _x, arg_type _rel)
 		RJMP(rel->arg);
 }
 
-#define inc(_x)						alu_box(_x, _inc_k, nop)
-#define inc16(_x)					alu16_box(_x, _inc16_k, nop)
+#define inc(_x)						unary_box(_x, _inc_k, 1)
+#define inc16(_x)					unary16_box(_x, _inc16_k, 1)
 
 #define jb(_bit, _rel)				_jb_wbc(vm, ARG_T(_bit), ARG_T(_rel), 0)
 #define jbc(_bit, _rel)				_jb_wbc(vm, ARG_T(_bit), ARG_T(_rel), 1)
@@ -321,6 +431,23 @@ static void _mov(vm_p vm, arg_type x0, arg_type x1)
 #define movc(_x0, _x1)				mov(_x0, _x1)
 #define movx(_x0, _x1)				mov(_x0, _x1)
 
+#define mul(_x0, _x1) _mul(vm, ARG_T(_x0), ARG_T(_x1))
+static void _mul(vm_p vm, arg_type _x0, arg_type _x1)
+{
+	arg_p x[2] = { arg_src(vm, _x0), arg_src(vm, _x1) };
+	
+	BCLR(PSW, PSW_BIT_CY);
+	
+	RES = x[0]->v * x[1]->v;
+	
+	CODE_TRACE_COMMENT("0x%08X * 0x%08X --> 0x%08X", x[0]->v, x[1]->v, RES);
+
+	arg_wb(vm, x[0], RES & 0xff);
+	arg_wb(vm, x[1], RES >> 8);
+
+	BSET_AS(PSW, PSW_BIT_OV, !!BBB);
+}
+
 #define nop()
 
 #define orl(_x0, _x1) alu_box(_x0, _orl_k, _x1)
@@ -346,6 +473,7 @@ static void _ppush(vm_p vm, arg_type xt)
 }
 
 #define ret() _ret(vm)
+#define reti() _ret(vm) /* TODO */
 static void _ret(vm_p vm)
 {
 	const uint32_t new_pc = pop(vm, 2);
@@ -355,17 +483,11 @@ static void _ret(vm_p vm)
 	JMP(new_pc);
 }
 
-#define rr(_x) _rr(vm, ARG_T(_x))
-static void _rr(vm_p vm, arg_type _x)
-{
-	arg_p x = arg_src(vm, _x);
-	
-	RES = _ror(x->v, 1);
-	
-	CODE_TRACE_COMMENT("0x%08X >> 1 = 0x%08X", x->v, RES);
-	
-	arg_wb(vm, x, RES);
-}
+#define rl(_x) unary_box(_x, _rl_k, 0)
+#define rlc(_x) unary_box(_x, _rlc_k, 0)
+
+#define rr(_x) unary_box(_x, _rr_k, 0)
+#define rrc(_x) unary_box(_x, _rrc_k, 0)
 
 #define setb(_bit) _setb(vm, ARG_T(_bit))
 static void _setb(vm_p vm, arg_type _bit)

@@ -9,4 +9,5 @@ enum {
 	PSW_BIT_CY,
 };
 
-#define PSW_CY				BTST(PSW, PSW_BIT_CY)
+#define _PSW(_x)					BEXT(PSW, PSW_BIT_##_x)
+#define PSW_CY						_PSW(CY)

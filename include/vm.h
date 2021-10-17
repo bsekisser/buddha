@@ -91,6 +91,7 @@ void vm_reset(vm_p vm);
 void vm_step(vm_p vm);
 
 #define ACC			SFR(ACC)
+#define BBB			SFR(B)
 #define PSW			SFR(PSW)
 
 #define _Rn_(_r) \

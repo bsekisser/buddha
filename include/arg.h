@@ -9,7 +9,9 @@ typedef enum arg_type {
 	_arg_t_acc,
 	_arg_t_addr11,
 	_arg_t_addr16,
+	_arg_t_bbb,
 	_arg_t_bit,
+	_arg_t_cbit,
 	_arg_t_dir,
 	_arg_t_rDPTR,
 	_arg_t_imm8,
@@ -21,6 +23,7 @@ typedef enum arg_type {
 	/* **** -- indirect */
 	_arg_t_indirect = 1 << 8,
 	_arg_t_atA_DPTRc,
+	_arg_t_atA_PC,
 	_arg_t_atDPTRx,
 	_arg_t_atRi,
 	/* **** a5 -- 16 bit operations */

@@ -80,12 +80,14 @@ void code_trace_out(vm_p vm)
 
 		switch(ARG(i)->type) {
 			TRACE_ESAC(acc, "A")
+			TRACE_ESAC(bbb, "B")
 			TRACE_ESAC(addr11, "0x%08lX", _JMP(ARG(i)->v));
 			TRACE_ESAC(addr16, "0x%08lX", _JMP(ARG(i)->arg));
 			TRACE_ESAC(atA_DPTRc, "@A + DPTR");
 			TRACE_ESAC(atDPTRx, "@DPTR");
 			TRACE_ESAC(bPSW_CY, "C");
 			TRACE_ESAC(bit, "$%02X.%01u", BIT_EA(ARG(i)->arg), BIT_POS(ARG(i)->arg));
+			TRACE_ESAC(cbit, "/$%02X.%01u", BIT_EA(ARG(i)->arg), BIT_POS(ARG(i)->arg));
 			TRACE_ESAC(dir, "$%02X", ARG(i)->arg);
 			TRACE_ESAC(rDPTR, "DPTR");
 			TRACE_ESAC(imm8, "#%02X", ARG(i)->v);
@@ -102,6 +104,10 @@ void code_trace_out(vm_p vm)
 			TRACE_ESAC(WR_iWRy, "@R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
 			TRACE_ESAC(iWRx_WR, "@R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
 			TRACE_ESAC(iWR_WRy, "R%01u:R%01u", tmp_WRl(ARG(i)->arg), tmp);
+			default:
+				TRACE("esac = 0x%08X", ARG(i)->type);
+				exit(-1);
+			break;
 		}
 	}
 	
