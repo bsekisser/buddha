@@ -451,16 +451,29 @@ void vm_reset(vm_p vm)
 	PC = 0xffff0000;
 }
 
+static int vm_step_a5(vm_p vm)
+{
+	do {
+		IR = (IR << 8) | ld_code_ia(vm, &PC, 1);
+	}while((IR == 0xa5) | (IR == 0xa500));
+
+	INST_ESAC_LIST_MASKED_a5
+	switch(IR) {
+		default:
+				return(-1);
+		break;
+		INST_ESAC_LIST_a5
+	}
+
+	return(0);
+}
+
 void vm_step(vm_p vm)
 {
 	int err = 0;
 
 	IP = PC;
-	IR = 0;
-
-	do {
-		IR = (IR << 8) | ld_code_ia(vm, &PC, 1);
-	}while((IR == 0xa5) | (IR == 0xa500));
+	IR = ld_code_ia(vm, &PC, 1);
 
 	code_trace_start(vm);
 
@@ -471,13 +484,14 @@ void vm_step(vm_p vm)
 	CYCLE++;
 
 	INST_ESAC_LIST_MASKED
-	INST_ESAC_LIST_MASKED_a5
 	switch(IR) {
+		case 0xa5:
+			err = vm_step_a5(vm);
+		break;
 		default:
 				err = -1;
 		break;
 		INST_ESAC_LIST
-		INST_ESAC_LIST_a5
 	}
 
 	code_trace_out(vm);
