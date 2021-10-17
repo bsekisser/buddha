@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "bitfield.h"
+#include "shift_roll.h"
 
 #include "vm.h"
 
@@ -183,7 +184,8 @@ static void _clr(vm_p vm, arg_type _x)
 
 #define cmp16(_x0, _x1) alu16_box(_x0, _cmp16_k, _x1)
 
-#define dec16(_x)					alu16_box(_x, _dec16_k, nop)
+#define dec(_x) alu_box(_x, _dec_k, nop)
+#define dec16(_x) alu16_box(_x, _dec16_k, nop)
 
 #define djnz(_x, _rel) _djnz(vm, ARG_T(_x), ARG_T(_rel))
 static void _djnz(vm_p vm, arg_type _x, arg_type _rel)
@@ -351,6 +353,18 @@ static void _ret(vm_p vm)
 	CODE_TRACE_COMMENT("(SP = 0x%04X)", SP);
 
 	JMP(new_pc);
+}
+
+#define rr(_x) _rr(vm, ARG_T(_x))
+static void _rr(vm_p vm, arg_type _x)
+{
+	arg_p x = arg_src(vm, _x);
+	
+	RES = _ror(x->v, 1);
+	
+	CODE_TRACE_COMMENT("0x%08X >> 1 = 0x%08X", x->v, RES);
+	
+	arg_wb(vm, x, RES);
 }
 
 #define setb(_bit) _setb(vm, ARG_T(_bit))

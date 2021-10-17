@@ -5,6 +5,7 @@
 #define INST_ESAC_LIST_MISC \
 	INST(ESAC(0x00), 0, 0, nop(), "NOP") \
 	INST(ESAC(0x02), 3, 2, ljmp(addr16), "LJMP") \
+	INST(ESAC(0x03), 0, 0, rr(acc), "RR") \
 	INST(ESAC(0x12), 3, 2, lcall(addr16), "LCALL") \
 	INST(ESAC(0x20), 3, 2, jb(bit, rel), "JB") \
 	INST(ESAC(0x22), 0, 2, ret(), "RET") \
@@ -16,6 +17,7 @@
 	INST(ESAC(0x53), 3, 2, anl(dir, imm8), "ANL") \
 	INST(ESAC(0x54), 2, 0, anl(acc, imm8), "ANL") \
 	INST(ESAC(0x60), 2, 2, jz(rel), "JZ") \
+	INST(ESAC(0x64), 2, 0, xrl(acc, imm8), "XRL") \
 	INST(ESAC(0x70), 2, 2, jnz(rel), "JNZ") \
 	INST(ESAC(0x73), 0, 2, ljmp(atA_DPTRc), "JMP") \
 	INST(ESAC(0x74), 2, 0, mov(acc, imm8), "MOV") \
@@ -60,6 +62,8 @@
 	INST(ESAC(0xf5), 2, 0, mov(dir, acc), "MOV")
 
 #define INST_ESAC_LIST_x67 \
+	INST(ESAC_RANGE(0x06, 0x07), 0, 0, inc(atRi), "INC") \
+	INST(ESAC_RANGE(0x16, 0x17), 0, 0, dec(atRi), "DEC") \
 	INST(ESAC_RANGE(0x26, 0x27), 0, 0, add(acc, atRi), "ADD") \
 	INST(ESAC_RANGE(0x36, 0x37), 0, 0, addc(acc, atRi), "ADDC") \
 	INST(ESAC_RANGE(0xe6, 0xe7), 0, 0, mov(acc, atRi), "MOV") \
@@ -67,8 +71,11 @@
 
 #define INST_ESAC_LIST_x8F \
 	INST(ESAC_RANGE(0x08, 0x0f), 0, 0, inc(Rn), "INC") \
+	INST(ESAC_RANGE(0x18, 0x1f), 0, 0, dec(Rn), "DEC") \
 	INST(ESAC_RANGE(0x28, 0x2f), 0, 0, add(acc, Rn), "ADD") \
 	INST(ESAC_RANGE(0x38, 0x3f), 0, 0, addc(acc, Rn), "ADDC") \
+	INST(ESAC_RANGE(0x48, 0x4f), 0, 0, orl(acc, Rn), "ORL") \
+	INST(ESAC_RANGE(0x58, 0x5f), 0, 0, anl(acc, Rn), "ANL") \
 	INST(ESAC_RANGE(0x68, 0x6f), 0, 0, xrl(acc, Rn), "XRL") \
 	INST(ESAC_RANGE(0x78, 0x7f), 2, 0, mov(Rn, imm8), "MOV") \
 	INST(ESAC_RANGE(0x88, 0x8f), 2, 2, mov(dir, Rn), "MOV") \
