@@ -86,7 +86,7 @@ typedef struct vm_t {
 	uint8_t*				flash_bin;
 }vm_t;
 
-void vm_init(vm_p vm);
+vm_p vm_init(void);
 void vm_reset(vm_p vm);
 void vm_step(vm_p vm);
 

@@ -14,7 +14,10 @@
 
 #include "on_err.h"
 #include "buddha.h"
+
 #include "vm.h"
+
+#include "monitor.h"
 #include "trace.h"
 
 static void list_code_app_entries(vm_p vm)
@@ -82,32 +85,38 @@ fail_open:
 	return((void*)-1);
 }
 
-int main(void)
+int main(int argc, char* argv[])
 {
+	int err = 0;
+	monitor_p monitor;
 	vm_p vm;
-	
-	ON_0ERR(fail_vm_alloc, vm = calloc(1, sizeof(vm_t)));
+
+	ON_0ERR(fail_vm_alloc, vm = vm_init());
+	ON_0ERR(fail_monitor_alloc, monitor = monitor_init(vm));
 
 	vm->buddha_rom = load_mmap(vm, "archive/buddha_rom.bin", "buddha_rom");
-	vm->code_app = load_mmap(vm, "archive/code.app", "code_app");
+//	vm->code_app = load_mmap(vm, "archive/code.app", "code_app");
 //	vm->flash_bin = load_mmap(vm, "archive/flash.bin", "flash_bin");
+	
+	memcpy(vm->irom, &vm->buddha_rom[0x8000], 0x1fff);
+//	memcpy(vm->xram, vm->buddha_rom, 65536);
+	memcpy(vm->xrom, vm->buddha_rom, 65536);
 
-	list_code_app_entries(vm);
+	if(vm->code_app) {
+		list_code_app_entries(vm);
+
+#include "../archive/private/main_config.h"
+	}
 
 	vm_reset(vm);
 
-#include "../archive/private/main_config.h"
+	return(monitor_main(monitor, argc, argv));
 
-	for(int i = 0; i < 4096; i++)
-		vm_step(vm);
-
-	TRACE("CYCLE = 0x%016llx", CYCLE);
-
+	if(monitor)
+		free(monitor);
+fail_monitor_alloc:
 	if(vm)
 		free(vm);
-
-	return(0);
-
 fail_vm_alloc:
-	return(-1);
+	return(err);
 }

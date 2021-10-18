@@ -571,6 +571,17 @@ INST_ESAC_LIST_MASKED_a5
 		inst_##_op(vm); \
 	}else
 
+/* **** */
+
+vm_p vm_init(void)
+{
+	vm_p vm = calloc(1, sizeof(vm_t));
+	if(!vm)
+		return(0);
+
+	return(vm);
+}
+
 void vm_reset(vm_p vm)
 {
 	/* X = undefined */
