@@ -15,6 +15,24 @@ static void st_sfr(vm_p vm, uint32_t pat, uint8_t data);
 		_action; \
 	break;
 
+uint8_t ld(vm_p vm, uint32_t pat)
+{
+	uint32_t segment = pat >> 16;
+	
+	switch(segment) {
+		case 0xff ... 0xffff:
+			return(ld_code(vm, pat));
+		break;
+		case 0x01:
+			return(ld_xternal(vm, pat));
+		break;
+		case 0x00:
+			return(ld_indirect(vm, pat));
+		break;
+	}
+	return(pat & 0xff);
+}
+
 uint8_t ld_bit(vm_p vm, uint32_t pat)
 {
 	const uint8_t ea = BIT_EA(pat);
@@ -50,7 +68,17 @@ uint8_t ld_direct(vm_p vm, uint32_t pat)
 	else
 		return(ld_sfr(vm, pat));
 }
+
+uint32_t ld_ia(vm_p vm, uint32_t* ppat, int count)
+{
+	uint32_t data = 0;
 	
+	for(int i = count; i; i--)
+		data = (data << 8) | ld(vm, (*ppat)++);
+	
+	return(data);
+}
+
 uint8_t ld_indirect(vm_p vm, uint32_t pat)
 {
 	if(pat < 0x100)

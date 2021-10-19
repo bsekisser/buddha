@@ -34,18 +34,18 @@ static arg_p arg_arg(vm_p vm, arg_type type)
 	x->type = type;
 	
 	switch(type) {
-		ARG_ESAC(addr11, ld_code_ia(vm, &PC, 1));
-		ARG_ESAC(addr16, ld_code_ia(vm, &PC, 2));
+		ARG_ESAC(addr11, ld_ia(vm, &PC, 1));
+		ARG_ESAC(addr16, ld_ia(vm, &PC, 2));
 		ARG_ESAC(atA_DPTRc, (ACC + DPTRc));
 		ARG_ESAC(atA_PC, (ACC + PC));
 		ARG_ESAC(atDPTRx, DPTRx);
-		ARG_ESAC(bit, ld_code_ia(vm, &PC, 1));
-		ARG_ESAC(cbit, ld_code_ia(vm, &PC, 1));
-		ARG_ESAC(dir, ld_code_ia(vm, &PC, 1));
-		ARG_ESAC(imm8, ld_code_ia(vm, &PC, 1));
-		ARG_ESAC(imm16, ld_code_ia(vm, &PC, 2));
-		ARG_ESAC(imm16be, ld_code_ia(vm, &PC, 2));
-		ARG_ESAC(rel, (int8_t)ld_code_ia(vm, &PC, 1));
+		ARG_ESAC(bit, ld_ia(vm, &PC, 1));
+		ARG_ESAC(cbit, ld_ia(vm, &PC, 1));
+		ARG_ESAC(dir, ld_ia(vm, &PC, 1));
+		ARG_ESAC(imm8, ld_ia(vm, &PC, 1));
+		ARG_ESAC(imm16, ld_ia(vm, &PC, 2));
+		ARG_ESAC(imm16be, ld_ia(vm, &PC, 2));
+		ARG_ESAC(rel, (int8_t)ld_ia(vm, &PC, 1));
 /* **** -- a5 -- 16 bit operations */
 		ARG_ESAC(WRx, IR_WRx);
 		ARG_ESAC(WRx_WR, IR_WRx_WR);
@@ -68,7 +68,7 @@ static arg_p arg_arg(vm_p vm, arg_type type)
 		break;
 	}
 
-	IXR->trace.pc = PC;
+	IXR->trace.pcip = PC - IP;
 
 	return(x);
 }
@@ -141,6 +141,9 @@ static void st_wr(vm_p vm, uint8_t r, uint32_t v)
 
 void arg_wb(vm_p vm, arg_p x, uint32_t v)
 {
+	if(!IXR->trace.wb)
+		return;
+
 	if(x) switch(x->type) {
 		ARG_ACTION(acc, ACC = v);
 		ARG_ACTION(bbb, BBB = v);

@@ -19,40 +19,51 @@ const char spaces[61] = "                                                       
 #define SOUT(_f, _args...) \
 	dst += snprintf(dst, end - dst, _f, ##_args);
 
+void code_trace_end(vm_p vm)
+{
+	PC = IXR->trace.saved_pc;
+	IXR->trace.trace = 0;
+	IXR->trace.wb = IXR->trace.saved_wb;
+}
+
 void code_trace_op(vm_p vm, const char* op_string, const uint32_t bytes)
 {
+	if(!IXR->trace.trace)
+		return;
+
 	IXR->trace.op_string = op_string;
 	IXR->trace.op_bytes = bytes;
 }
 
-void code_trace_start(vm_p vm)
+void code_trace_reset(vm_p vm)
 {
 	IXR->trace.comment[0] = 0;
 	IXR->trace.op_bytes = 0;
 	IXR->trace.op_string = "";
+	IXR->trace.pcip = 1;
+}
 
-/* **** !!!!! WARNING !!!! ****
- * 
- * Make SURE this is before modified pc below.
- * 
- * Failing to adhere to this warning
- * 		WILL result in severe confusion!!!!
- * 
- */
-
-	IXR->trace.pc = PC;
+void code_trace_start(vm_p vm, int wb)
+{
+	IXR->trace.saved_pc = PC;
+	IXR->trace.trace = 1;
+	IXR->trace.saved_wb = IXR->trace.wb;
+	IXR->trace.wb = wb;
 }
 
 /* **** */
 
 /* !!!!! WARNING MODIFIED PC BELOW THIS POINT !!!!! */
 #undef PC
-#define PC							IXR->trace.pc
+#define PC							(IR + IXR->trace.pcip)
 
 #define tmp_WRl(_x)					({ tmp = _x; tmp++; })
 
 void code_trace_out(vm_p vm)
 {
+	if(!IXR->trace.trace)
+		return;
+
 	char out[256], *dst = out, *end = &out[255];
 
 //	TRACE("CYCLE: 0x%016llu, IP = 0x%08X, PC = 0x%08X, IR = 0x%08X", CYCLE, IP, PC, IR);
@@ -60,9 +71,7 @@ void code_trace_out(vm_p vm)
 	
 	uint8_t tmp;
 	
-	const int32_t pcip_count = PC - IP;
-
-	for(uint32_t i = IP; i < IP + 7; i++)
+	for(uint32_t i = IR; i < IR + 7; i++)
 	{
 		if(i < PC) {
 			SOUT("%02X ", ld_code(vm, i));
@@ -115,11 +124,11 @@ void code_trace_out(vm_p vm)
 
 	const uint32_t bytes = IXR->trace.op_bytes;
 
-	if((bytes ? bytes : 1) != (pcip_count ? pcip_count : 1))
+	if((bytes ? bytes : 1) != IXR->trace.pcip)
 		TRACE("0x%08X: ***>>> !!! byte count mismatch -- pcip = 0x%08u, expected = 0x%08u!!! <<<***",
-			IP, pcip_count, bytes);
+			IP, IXR->trace.pcip, bytes);
 
-	if(!pcip_count) {
+	if(!IXR->trace.pcip) {
 		TRACE("?? no pcip_count ??");
 		exit(-1);
 	}

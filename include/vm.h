@@ -5,10 +5,18 @@
 #define MHz(_x)				KHz(KHz(_x))
 
 #define _JMP(_ea) (~0xffffUL + (_ea & 0xffffUL))
-#define JMP(_ea) PC = _JMP(_ea);
+#define JMP(_ea) \
+	({ \
+		if(!IXR->trace.trace || IXR->trace.wb) \
+			PC = _JMP(_ea); \
+	})
 
 #define _RJMP(_ea) (PC + (int8_t)_ea)
-#define RJMP(_ea) PC = _RJMP((int8_t)_ea);
+#define RJMP(_ea) \
+	({ \
+		if(!IXR->trace.trace || IXR->trace.wb) \
+			PC = _RJMP((int8_t)_ea); \
+	})
 
 typedef struct arg_t** arg_h;
 typedef struct arg_t* arg_p;
@@ -37,7 +45,13 @@ typedef struct ixr_t {
 		char				comment[256];
 		uint32_t			op_bytes;
 		const char*			op_string;
-		uint32_t			pc;
+		uint32_t			pcip;
+		struct {
+			uint8_t			saved_wb:1;
+			uint8_t			trace:1;
+			uint8_t			wb:1;
+		};
+		uint32_t			saved_pc;
 	}trace;
 
 	struct {
@@ -89,6 +103,7 @@ typedef struct vm_t {
 vm_p vm_init(void);
 void vm_reset(vm_p vm);
 void vm_step(vm_p vm);
+uint32_t vm_step_trace(vm_p vm, uint32_t pat, int count, int wb);
 
 #define ACC			SFR(ACC)
 #define BBB			SFR(B)

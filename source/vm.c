@@ -20,10 +20,10 @@
 
 enum {
 	_nop_k,
-	_adc_k,
 	_add_k,
 	_and_k,
 	_cpl_k,
+	_cmp_k,
 	_dec_k,
 	_inc_k,
 	_or_k,
@@ -34,17 +34,21 @@ enum {
 	_rlc_k,
 	_rr_k,
 	_rrc_k,
-	_sub_k,
 	_xor_k,
 
+	_psw_cy_k	= 1 << 7,
+	_adc_k = _psw_cy_k | _add_k,
+	_sub_k,
+	
 	/* **** a5 -- 16 bit operattions*/
 
-	_adc16_k,
-	_add16_k,
-	_cmp16_k,
-	_dec16_k,
-	_inc16_k,
-	_sub16_k,
+	_x16_k = 1 << 8,
+	_adc16_k = _x16_k | _adc_k,
+	_add16_k = _x16_k | _add_k,
+	_cmp16_k = (_x16_k | _cmp_k) & ~_psw_cy_k,
+	_dec16_k = _x16_k | _dec_k,
+	_inc16_k = _x16_k | _inc_k,
+	_sub16_k = _x16_k | _sub_k,
 
 	/* **** alias */
 
@@ -94,7 +98,6 @@ static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 		case	_add_k:
 			ops = "+";
 			RES += (x[1]->v + ((_adc_k == esac) ? !!PSW_CY : 0));
-			_alu_flags_add(vm, x[0]->v, x[1]->v, RES, 0);
 		break;
 		case	_and_k:
 			ops = "&";
@@ -108,13 +111,11 @@ static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 			wb = 0;
 			ops = "-";
 			RES -= x[1]->v;
-			_alu_flags_sub(vm, x[0]->v, x[1]->v, RES, 1);
 		break;
 		case	_sub16_k:
 		case	_sub_k:
 			ops = "-";
 			RES -= (!!PSW_CY + x[1]->v);
-			_alu_flags_sub(vm, x[0]->v, x[1]->v, RES, x16);
 		break;
 		case	_xor_k:
 			ops = "^";
@@ -127,6 +128,20 @@ static void _alu_box(vm_p vm, int esac, arg_type x0, arg_type x1, int x16)
 	}
 
 	CODE_TRACE_COMMENT("0x%08X %s 0x%08X --> 0x%08X", x[0]->v, ops, x1v, RES);
+
+	switch(esac) {
+		case	_adc16_k:
+		case	_adc_k:
+		case	_add16_k:
+		case	_add_k:
+			_alu_flags_add(vm, x[0]->v, x[1]->v, RES, 0);
+		break;
+		case	_cmp16_k:
+		case	_sub16_k:
+		case	_sub_k:
+			_alu_flags_sub(vm, x[0]->v, x[1]->v, RES, x16);
+		break;
+	}
 
 	if(wb)
 		arg_wb(vm, x[0], RES);
@@ -620,9 +635,9 @@ void vm_step(vm_p vm)
 	int err = 0;
 
 	IP = PC;
-	IR = ld_code_ia(vm, &PC, 1);
+	IR = ld_ia(vm, &PC, 1);
 
-	code_trace_start(vm);
+	code_trace_reset(vm);
 
 //	TRACE("CYCLE: 0x%016llu, IP = 0x%08X, PC = 0x%08X, IR = 0x%08X", CYCLE, IP, PC, IR);
 
@@ -645,4 +660,21 @@ void vm_step(vm_p vm)
 
 	if(err)
 		exit(-1);
+}
+
+uint32_t vm_step_trace(vm_p vm, uint32_t pat, int count, int wb)
+{
+	code_trace_start(vm, wb);
+
+	PC = pat;
+	
+	do {
+		vm_step(vm);
+	}while(--count);
+	
+	pat = PC;
+
+	code_trace_end(vm);
+
+	return(pat);
 }
