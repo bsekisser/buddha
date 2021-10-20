@@ -10,6 +10,15 @@
 #include "monitor.h"
 #include "trace.h"
 
+#define DOT(_action) ({ TRACE(); _action; })
+#define TRACE_IF(_test, _action) \
+	({ \
+		if(_test) { \
+			TRACE(#_test); \
+			_action; \
+		} \
+	})
+
 typedef struct monitor_t {
 	vm_p							vm;
 	trace_p							trace;
@@ -46,8 +55,6 @@ void dump(monitor_p m, uint8_t count)
 {
 //	TRACE("count = 0x%08x", count);
 
-	m->pat |= (m->segment << 16);
-
 	do {
 		uint8_t out[9], *dst = out;
 
@@ -56,7 +63,7 @@ void dump(monitor_p m, uint8_t count)
 		do {
 			uint8_t c = ld(m->vm, m->pat++);
 			printf("%02X ", c);
-			
+
 			c &= 0x7f;
 			*dst++ = ((c < ' ') ? ' ' : c);
 		}while((--count) && (m->pat & 7));
@@ -69,6 +76,8 @@ void dump(monitor_p m, uint8_t count)
 
 void dump_to(monitor_p m, uint32_t to_pat)
 {
+	TRACE_IF((to_pat < m->pat), return);
+
 	uint32_t count = ++to_pat - m->pat;
 
 //	TRACE("to_pat = 0x%08x, count = 0x%08x", to_pat, count);
@@ -92,9 +101,9 @@ monitor_p monitor_init(vm_p p2vm)
 	monitor_p m = calloc(1, sizeof(monitor_t));
 	if(!m)
 		return(0);
-	
+
 	m->vm = p2vm;
-	
+
 	return(m);
 }
 
@@ -130,7 +139,7 @@ static int match_char(char** p2src, const char c)
 		*p2src = src;
 		return(1);
 	}
-	
+
 	return(0);
 }
 
@@ -161,7 +170,7 @@ enum {
 static int32_t parse_token(monitor_p m, char** src, uint32_t* v)
 {
 	uint8_t c = **src;
-	
+
 //	TRACE("src = 0x%08X, *src = 0x%02X, c = 0x%02X", src, *src, c);
 
 	while(c && isblank(c))
@@ -191,13 +200,18 @@ void _push(monitor_p m, uint32_t v)
 	m->sp &= 0xf;
 }
 
+static uint32_t fix_pat(uint32_t segment, uint32_t pat)
+{
+	return((pat & 0xffff) | (segment << 16));
+}
+
 
 static void parse_line(monitor_p m, char* line)
 {
 	int action = 0, flags = 0;
 	char *src = line;
 	uint32_t c, v;
-	
+
 	while(*src) {
 //		TRACE("src = %08X, *src = %02X", src, *src);
 
@@ -205,29 +219,29 @@ static void parse_line(monitor_p m, char* line)
 			_set_flag(range);
 		else if((c = parse_token(m, &src, &v))) {
 			if(_int_k == c) {
-				if(match_char(&src, '/'))
+				if(match_char(&src, '/')) {
 					m->segment = v;
-				else if(match_char(&src, '<'))
+					m->pat = fix_pat(v, m->pat);
+				} else if(match_char(&src, '<'))
 					m->fill = v;
 				else {
 					action = _dump_k;
 					if(_test_flag(range)) {
 //		TRACE("src = %08X, *src = %02X", src, *src);
-						v += m->pat > v ? m->pat : 0;
-						m->to_pat = v;
+						m->to_pat = fix_pat(m->segment, v);
 					} else {
 //		TRACE("src = %08X, *src = %02X", src, *src);
-						m->pat = v;
+						m->pat = fix_pat(m->segment, v);
 					}
 				}
-			}
-		} else if(match_char(&src, 'l') || match_char(&src, 'L')) {
-			action = _list_k;
-		} else if(match_char(&src, '\n')) {
+			} else if(match_char(&src, 'l') || match_char(&src, 'L')) {
+				action = _list_k;
+			} else if(match_char(&src, '\n')) {
 				action = action ? action : _dump_line_k;
+			}
 		}
 	}
-	
+
 	switch(action | flags)
 	{
 		case _dump_k:
@@ -255,13 +269,13 @@ int monitor_main(monitor_p m, int argc, char* argv[])
 	char *line = 0;
 	size_t len = 0;
 	ssize_t nread;
-	
+
 	while((nread = getline(&line, &len, stream)) != -1) {
 //		TRACE("line = 0x%08x, len = 0x%08X, nread = 0x%08x\n", (int)line, len, nread);
 
 		parse_line(m, line);
 	}
-	
+
 	free(line);
 	return(0);
 }
