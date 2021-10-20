@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "min_max.h"
 
@@ -25,31 +26,17 @@ typedef struct monitor_t {
 
 //	char*							src;
 	uint32_t						fill;
+	uint32_t						mode;
 	uint32_t						pat;
 	uint32_t						to_pat;
 	uint32_t						segment;
 	uint32_t						stack[0x10];
 
 	uint8_t							sp;
-
 }monitor_t;
 
 /* **** -- utility functions */
 /* **** -- command action functions */
-
-static void list(monitor_p m)
-{
-//	TRACE();
-
-	m->pat = vm_step_trace(m->vm, m->pat, 20, 0);
-}
-
-static void list_to(monitor_p m, uint32_t to_pat)
-{
-	while(m->pat < to_pat) {
-		m->pat = vm_step_trace(m->vm, m->pat, 1, 0);
-	}
-}
 
 void dump(monitor_p m, uint8_t count)
 {
@@ -65,13 +52,19 @@ void dump(monitor_p m, uint8_t count)
 			printf("%02X ", c);
 
 			c &= 0x7f;
-			*dst++ = ((c < ' ') ? ' ' : c);
+			*dst++ = ((c < ' ') ? '.' : c);
 		}while((--count) && (m->pat & 7));
 
 		*dst = 0;
 
 		printf("- %s\n", out);
 	}while(count);
+}
+
+static void dump_line(monitor_p m)
+{
+	uint32_t count = 8 - (m->pat & 7);
+	dump(m, count);
 }
 
 void dump_to(monitor_p m, uint32_t to_pat)
@@ -88,10 +81,23 @@ void dump_to(monitor_p m, uint32_t to_pat)
 	dump(m, count);
 }
 
-static void dump_line(monitor_p m)
+static void list(monitor_p m)
 {
-	uint32_t count = 8 - (m->pat & 7);
-	dump(m, count);
+//	TRACE();
+
+	m->pat = vm_step_trace(m->vm, m->pat, 20, 0);
+}
+
+static void list_to(monitor_p m, uint32_t to_pat)
+{
+	while(m->pat < to_pat) {
+		m->pat = vm_step_trace(m->vm, m->pat, 1, 0);
+	}
+}
+
+static void trace(monitor_p m)
+{
+	m->pat = vm_step_trace(m->vm, m->pat, 1, 1);
 }
 
 /* **** */
@@ -143,6 +149,25 @@ static int match_char(char** p2src, const char c)
 	return(0);
 }
 
+static int match_token(char** p2src, const char* tk)
+{
+	char *src = *p2src;
+	
+//	TRACE("%s, %s", src, tk);
+
+	uint8_t len = strlen(tk);
+
+	if(*src && (0 == strncasecmp(tk, src, len))) {
+		*p2src += len;
+		
+//		TRACE("match %s", tk);
+
+		return(1);
+	}
+
+	return(0);
+}
+
 enum {
 	_nop_k,
 /* **** */
@@ -153,12 +178,15 @@ enum {
 	_fill_k,
 	_int_k,
 	_list_k,
+	_step_k, /* step over */
+	_trace_k, /* step/trace into */
 /* **** */
 };
 
 enum {
 	_flag_nop_k,
 	_flag_fill_k,
+	_flag_mode_set_k,
 	_flag_range_k,
 	_flag_set_segment_k,
 };
@@ -178,7 +206,15 @@ static int32_t parse_token(monitor_p m, char** src, uint32_t* v)
 
 //	TRACE("src = 0x%08X, *src = 0x%02X, c = 0x%02X", src, *src, c);
 
-	if(parse_hex(src, v))
+	if(match_token(src, "dump"))
+		return(_dump_line_k | _flag(mode_set));
+	else if(match_token(src, "list"))
+		return(_list_k | _flag(mode_set));
+	else if(match_token(src, "step"))
+		return(_step_k | _flag(mode_set));
+	else if(match_token(src, "trace"))
+		return(_trace_k | _flag(mode_set));
+	else if(parse_hex(src, v))
 		return(_int_k);
 
 //	TRACE("src = 0x%08X, *src = 0x%02X, c = 0x%02X", src, *src, c);
@@ -205,10 +241,9 @@ static uint32_t fix_pat(uint32_t segment, uint32_t pat)
 	return((pat & 0xffff) | (segment << 16));
 }
 
-
 static void parse_line(monitor_p m, char* line)
 {
-	int action = 0, flags = 0;
+	int action = m->mode, flags = 0;
 	char *src = line;
 	uint32_t c, v;
 
@@ -234,12 +269,28 @@ static void parse_line(monitor_p m, char* line)
 						m->pat = fix_pat(m->segment, v);
 					}
 				}
-			} else if(match_char(&src, 'l') || match_char(&src, 'L')) {
-				action = _list_k;
-			} else if(match_char(&src, '\n')) {
-				action = action ? action : _dump_line_k;
-			}
-		}
+			} else if(c & _flag(mode_set)) {
+				DOT(m->mode = c & ~_flag(mode_set));
+//			} else if(match_char(&src, '\n')) {
+//				action = action ? action : _dump_line_k;
+			} else {
+				match_char(&src, c);
+				c = toupper((unsigned char)c);
+				switch(c) {
+//					case 'D':
+//						action = _dump_k;
+					case 'L':
+						action = _list_k;
+					break;
+					case 'S':
+						action = _step_k;
+					break;
+					case 'T':
+						action = _trace_k;
+					break;
+				}
+			} // match char
+		} // parse_token
 	}
 
 	switch(action | flags)
@@ -260,6 +311,10 @@ static void parse_line(monitor_p m, char* line)
 		case _list_k | _flag(range):
 			list_to(m, m->to_pat);
 		break;
+		case _step_k:
+		case _trace_k:
+			trace(m);
+		break;
 	}
 }
 
@@ -269,6 +324,8 @@ int monitor_main(monitor_p m, int argc, char* argv[])
 	char *line = 0;
 	size_t len = 0;
 	ssize_t nread;
+
+	m->mode = _dump_k;
 
 	while((nread = getline(&line, &len, stream)) != -1) {
 //		TRACE("line = 0x%08x, len = 0x%08X, nread = 0x%08x\n", (int)line, len, nread);
